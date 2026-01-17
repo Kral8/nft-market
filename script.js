@@ -43,7 +43,7 @@ window.processPayment = async (price) => {
 async function loadNFTs() {
     const grid = document.getElementById('nft-grid');
     try {
-        const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
+        const q = collection(db, "nfts");
         const snap = await getDocs(q);
         grid.innerHTML = '';
         if (snap.empty) {
