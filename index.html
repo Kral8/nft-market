@@ -9,111 +9,68 @@
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.js"></script>
     
     <style>
-        /* Блокируем белый фон на корню */
-        html, body {
+        body {
             background-color: #0d0d12 !important;
-            margin: 0 !important;
-            padding: 0 !important;
             color: #ffffff !important;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow-x: hidden;
-        }
-
-        #app {
-            max-width: 500px;
-            margin: 0 auto;
+            font-family: sans-serif;
+            margin: 0;
             padding: 15px;
-            min-height: 100vh;
-        }
-
-        /* Шапка с кнопкой в углу */
-        .header-main {
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-            padding: 10px 0 !important;
-            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
-            margin-bottom: 20px;
-        }
-
-        .brand {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 8px;
         }
-
-        #logo { width: 32px; height: 32px; }
-
-        h1 {
-            font-size: 18px !important;
-            color: #ffd700 !important;
-            margin: 0 !important;
-            text-transform: uppercase;
-        }
-
-        /* Контейнер для кнопки TON */
-        #ton-connect-btn {
-            min-width: 140px;
+        #app { width: 100%; max-width: 500px; }
+        .header {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
         }
-
-        /* Сетка NFT */
+        h1 { color: #ffd700; margin: 0; font-size: 20px; }
         .nft-grid {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr !important;
-            gap: 12px !important;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            width: 100%;
             padding-bottom: 100px;
         }
-
-        .nft-card {
-            background: #16161e !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        .card {
+            background: #1c1c24;
             border-radius: 12px;
             padding: 10px;
             text-align: center;
+            border: 1px solid #333;
         }
-
-        .nft-card img {
-            width: 100%;
-            aspect-ratio: 1/1;
-            object-fit: cover;
-            border-radius: 8px;
-            background: #000;
-        }
-
-        .nft-card h3 { font-size: 14px; margin: 8px 0 4px; color: #fff; }
-        .nft-card p { color: #ffd700; font-weight: bold; margin: 5px 0; }
-
+        .card img { width: 100%; border-radius: 8px; aspect-ratio: 1/1; object-fit: cover; }
+        .card h3 { font-size: 14px; margin: 10px 0 5px; }
+        .card p { color: #ffd700; font-weight: bold; margin: 0 0 10px; }
         .buy-btn {
-            background: #ffd700 !important;
-            color: #000 !important;
-            border: none !important;
-            padding: 10px !important;
-            width: 100% !important;
-            border-radius: 8px !important;
-            font-weight: bold !important;
-            margin-top: 5px;
+            background: #ffd700;
+            color: #000;
+            border: none;
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
         }
-
-        /* Кнопка создания */
-        #mint-btn-main {
+        #mint-main-btn {
             position: fixed;
             bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
             width: 90%;
-            padding: 16px;
-            background: linear-gradient(45deg, #ffd700, #ffa500) !important;
-            border: none !important;
-            border-radius: 14px !important;
-            color: #000 !important;
-            font-weight: bold !important;
-            font-size: 16px;
-            z-index: 99;
+            max-width: 400px;
+            padding: 15px;
+            background: #ffd700;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            color: #000;
+            z-index: 100;
         }
-
-        /* Модалка */
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -121,27 +78,41 @@
             background: rgba(0,0,0,0.9);
             z-index: 1000;
         }
-
         .modal-content {
             background: #1c1c24;
             margin: 15% auto;
             padding: 20px;
             width: 80%;
-            border-radius: 16px;
+            border-radius: 15px;
             border: 1px solid #ffd700;
         }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            background: #000;
-            border: 1px solid #333;
-            color: #fff;
-            border-radius: 8px;
-            box-sizing: border-box;
-        }
+        input { width: 100%; padding: 10px; margin: 10px 0; background: #000; color: #fff; border: 1px solid #444; border-radius: 8px; box-sizing: border-box; }
     </style>
+</head>
+<body>
+
+    <div id="app">
+        <div class="header">
+            <h1>Royal</h1>
+            <div id="ton-btn"></div>
+        </div>
+
+        <div class="nft-grid" id="grid">
+            </div>
+
+        <button id="mint-main-btn" onclick="showModal()">+ List Your NFT</button>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h2 style="color:#ffd700; margin:0;">Create NFT</h2>
+            <input type="text" id="name" placeholder="Name">
+            <input type="number" id="price" placeholder="Price in TON">
+            <input type="file" id="file" accept="image/*">
+            <button onclick="mint()" id="m-btn" style="width:100%; padding:12px; background:#ffd700; border:none; border-radius:8px; font-weight:bold;">Create</button>
+            <button onclick="hideModal()" style="width:100%; background:none; border:none; color:#777; margin-top:10px;">Cancel</button>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -157,98 +128,75 @@
         };
 
         const app = initializeApp(firebaseConfig);
-        window.db = getFirestore(app);
-        window.fbMethods = { collection, addDoc, getDocs, query, orderBy };
-    </script>
-</head>
-<body>
-    <div id="app">
-        <header class="header-main">
-            <div class="brand">
-                <img src="logo.png" id="logo" alt="L" onerror="this.src='https://cdn-icons-png.flaticon.com/512/6001/6001527.png'">
-                <h1>Royal</h1>
-            </div>
-            <div id="ton-connect-btn"></div>
-        </header>
+        const db = getFirestore(app);
 
-        <div class="nft-grid" id="nft-display-area"></div>
+        // Делаем функции глобальными, чтобы кнопки их видели
+        window.startBuying = async (amount) => {
+            if (!window.tonUI.connected) {
+                await window.tonUI.openModal();
+                return;
+            }
+            const tx = {
+                validUntil: Math.floor(Date.now() / 1000) + 600,
+                messages: [{ address: "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98", amount: (parseFloat(amount) * 1000000000).toString() }]
+            };
+            try { await window.tonUI.sendTransaction(tx); alert("Success!"); } catch (e) { alert("Canceled"); }
+        };
 
-        <button id="mint-btn-main" onclick="openModal()">+ List Your NFT</button>
-    </div>
-
-    <div id="mint-modal" class="modal">
-        <div class="modal-content">
-            <h2 style="color:#ffd700; margin:0 0 15px 0;">Create NFT</h2>
-            <input type="text" id="nft-name" placeholder="Name">
-            <input type="number" id="nft-price" placeholder="Price in TON">
-            <input type="file" id="nft-file" accept="image/*">
-            <button onclick="startMinting()" id="confirm-mint-btn" style="width:100%; padding:12px; background:#ffd700; border:none; border-radius:8px; font-weight:bold;">Create</button>
-            <button onclick="closeModal()" style="width:100%; background:none; border:none; color:#777; margin-top:10px;">Cancel</button>
-        </div>
-    </div>
-
-    <script>
-        const WebApp = window.Telegram.WebApp;
-        WebApp.ready();
-        WebApp.expand();
-        WebApp.backgroundColor = '#0d0d12';
-        WebApp.headerColor = '#0d0d12';
-
-        window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect-btn'
-        });
-
-        const MY_TON_ADDRESS = "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98"; 
-        const PINATA_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjYWMxZDM2Yy04MDVmLTQzYTQtYmQ5My1iNzhmNmM0NTI1MDAiLCJlbWFpbCI6InNhYnRpbThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjBjNGVhZTZmZGZiYTVmYzM2OTZkIiwic2NvcGVkS2V5U2VjcmV0IjoiYjA0NmFiNjc5MTAyY2IzNGVjOGRjZDNmN2Q5N2Y2OWVhNTNmNDQ3MjUxMDI3NGRjYWU3MjJlYmI0YjAyOTU5MyIsImV4cCI6MTgwMDIwMjY0MH0.uC3hCpCcf2uuxBs3bY5u5d6KHNaGtngHufen-0HZnbw';
-
-        async function loadNFTs() {
-            const grid = document.getElementById('nft-display-area');
-            if (!grid) return;
-            grid.innerHTML = '<p style="color:gold; grid-column:1/3; text-align:center;">Loading...</p>';
+        window.loadItems = async () => {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '<p style="grid-column:1/3; text-align:center;">Loading...</p>';
             try {
-                if (!window.fbMethods) { setTimeout(loadNFTs, 500); return; }
-                const { getDocs, collection, query, orderBy } = window.fbMethods;
-                const q = query(collection(window.db, "nfts"), orderBy("createdAt", "desc"));
+                const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
                 const snap = await getDocs(q);
                 grid.innerHTML = '';
                 snap.forEach(doc => {
                     const nft = doc.data();
-                    const div = document.createElement('div');
-                    div.className = 'nft-card';
-                    div.innerHTML = `<img src="${nft.image}"><h3>${nft.name}</h3><p>${nft.price} TON</p><button class="buy-btn" onclick="sendTransaction('${nft.price}','${nft.name}')">Buy Now</button>`;
-                    grid.appendChild(div);
+                    const item = document.createElement('div');
+                    item.className = 'card';
+                    item.innerHTML = `<img src="${nft.image}"><h3>${nft.name}</h3><p>${nft.price} TON</p><button class="buy-btn" onclick="startBuying('${nft.price}')">Buy Now</button>`;
+                    grid.appendChild(item);
                 });
-            } catch (e) { grid.innerHTML = 'Error'; }
-        }
-        loadNFTs();
-
-        window.sendTransaction = async (amount, name) => {
-            if (!window.tonConnectUI.connected) { window.tonConnectUI.openModal(); return; }
-            const tx = { validUntil: Math.floor(Date.now()/1000)+600, messages: [{address: MY_TON_ADDRESS, amount: (parseFloat(amount)*1000000000).toString()}] };
-            try { await window.tonConnectUI.sendTransaction(tx); WebApp.showAlert("Success!"); } catch(e) { WebApp.showAlert("Canceled"); }
+            } catch (e) { grid.innerHTML = 'Error loading items.'; console.log(e); }
         };
 
-        window.openModal = () => document.getElementById('mint-modal').style.display = 'block';
-        window.closeModal = () => document.getElementById('mint-modal').style.display = 'none';
-
-        window.startMinting = async () => {
-            const name = document.getElementById('nft-name').value;
-            const price = document.getElementById('nft-price').value;
-            const file = document.getElementById('nft-file').files[0];
-            if(!name || !price || !file) return WebApp.showAlert("Fill all!");
-            const btn = document.getElementById('confirm-mint-btn');
-            btn.innerText = "Minting..."; btn.disabled = true;
+        window.mint = async () => {
+            const n = document.getElementById('name').value;
+            const p = document.getElementById('price').value;
+            const f = document.getElementById('file').files[0];
+            if(!n || !p || !f) { alert("Fill all!"); return; }
+            const b = document.getElementById('m-btn');
+            b.innerText = "Minting..."; b.disabled = true;
             try {
-                const fd = new FormData(); fd.append('file', file);
-                const r = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS",{method:'POST',headers:{'Authorization':`Bearer ${PINATA_JWT}`},body:fd});
+                const fd = new FormData(); fd.append('file', f);
+                const r = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjYWMxZDM2Yy04MDVmLTQzYTQtYmQ5My1iNzhmNmM0NTI1MDAiLCJlbWFpbCI6InNhYnRpbThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjBjNGVhZTZmZGZiYTVmYzM2OTZkIiwic2NvcGVkS2V5U2VjcmV0IjoiYjA0NmFiNjc5MTAyY2IzNGVjOGRjZDNmN2Q5N2Y2OWVhNTNmNDQ3MjUxMDI3NGRjYWU3MjJlYmI0YjAyOTU5MyIsImV4cCI6MTgwMDIwMjY0MH0.uC3hCpCcf2uuxBs3bY5u5d6KHNaGtngHufen-0HZnbw' },
+                    body: fd
+                });
                 const d = await r.json();
-                const { addDoc, collection } = window.fbMethods;
-                await addDoc(collection(window.db, "nfts"), { name, price, image: `https://gateway.pinata.cloud/ipfs/${d.IpfsHash}`, createdAt: Date.now() });
-                closeModal(); loadNFTs();
-            } catch(e) { WebApp.showAlert("Error"); }
-            finally { btn.innerText = "Create"; btn.disabled = false; }
+                await addDoc(collection(db, "nfts"), { name: n, price: p, image: `https://gateway.pinata.cloud/ipfs/${d.IpfsHash}`, createdAt: Date.now() });
+                hideModal(); window.loadItems();
+            } catch(e) { alert("Error minting!"); } finally { b.innerText = "Create"; b.disabled = false; }
         };
+
+        // Запускаем загрузку после инициализации Firebase
+        window.loadItems();
+    </script>
+
+    <script>
+        // Инициализация TON Connect
+        window.tonUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
+            buttonRootId: 'ton-btn'
+        });
+
+        function showModal() { document.getElementById('modal').style.display = 'block'; }
+        function hideModal() { document.getElementById('modal').style.display = 'none'; }
+        
+        const WebApp = window.Telegram.WebApp;
+        WebApp.ready();
+        WebApp.expand();
     </script>
 </body>
 </html>
