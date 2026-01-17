@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Royal NFT Market</title>
+    <style>
+        body {
+            background: #04111d;
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            background: #18202a;
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        h1 {
+            color: #ffd700;
+            text-align: center;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #2081e2;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .message {
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .success { background: #00b09b; display: block; }
+        .error { background: #ff4757; display: block; }
+    </style>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>⚙️ Admin Panel</h1>
+        <p>Configure your NFT marketplace settings</p>
+        
+        <div id="message" class="message"></div>
+        
+        <h3>Pinata JWT Setup</h3>
+        <input type="password" id="pinata-jwt" placeholder="Enter your Pinata JWT token">
+        <button onclick="saveJWT()">Save to CloudStorage</button>
+        
+        <h3>Wallet Address</h3>
+        <input type="text" id="wallet-address" placeholder="Your TON wallet address (optional)">
+        
+        <h3>Marketplace Settings</h3>
+        <input type="text" id="market-name" placeholder="Marketplace name" value="Royal NFT Market">
+        <input type="text" id="market-fee" placeholder="Marketplace fee %" value="2.5">
+        
+        <button onclick="saveAllSettings()">Save All Settings</button>
+        
+        <div style="margin-top: 30px; font-size: 14px; color: #8a939b;">
+            <p><strong>How to get Pinata JWT:</strong></p>
+            <ol>
+                <li>Go to <a href="https://pinata.cloud" style="color:#2081e2;">pinata.cloud</a></li>
+                <li>Create account or login</li>
+                <li>Go to API Keys section</li>
+                <li>Create new JWT token</li>
+                <li>Copy and paste here</li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        const tg = window.Telegram?.WebApp;
+        
+        if (tg) {
+            tg.expand();
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => {
+                window.location.href = 'index.html';
+            });
+            
+            // Загружаем сохраненные настройки
+            loadSettings();
+        } else {
+            alert("Please open this page from Telegram bot");
+        }
+        
+        async function loadSettings() {
+            if (!tg?.CloudStorage) return;
+            
+            try {
+                const jwt = await tg.CloudStorage.getItem('pinata_jwt');
+                const wallet = await tg.CloudStorage.getItem('wallet_address');
+                const name = await tg.CloudStorage.getItem('market_name');
+                const fee = await tg.CloudStorage.getItem('market_fee');
+                
+                if (jwt) document.getElementById('pinata-jwt').value = jwt;
+                if (wallet) document.getElementById('wallet-address').value = wallet;
+                if (name) document.getElementById('market-name').value = name;
+                if (fee) document.getElementById('market-fee').value = fee;
+            } catch (e) {
+                console.error("Error loading settings:", e);
+            }
+        }
+        
+        async function saveJWT() {
+            const jwt = document.getElementById('pinata-jwt').value.trim();
+            
+            if (!jwt) {
+                showMessage("Please enter Pinata JWT", "error");
+                return;
+            }
+            
+            try {
+                await tg.CloudStorage.setItem('pinata_jwt', jwt);
+                showMessage("✅ JWT saved successfully!", "success");
+            } catch (e) {
+                showMessage("❌ Error saving JWT: " + e.message, "error");
+            }
+        }
+        
+        async function saveAllSettings() {
+            const jwt = document.getElementById('pinata-jwt').value.trim();
+            const wallet = document.getElementById('wallet-address').value.trim();
+            const name = document.getElementById('market-name').value.trim();
+            const fee = document.getElementById('market-fee').value.trim();
+            
+            try {
+                if (jwt) await tg.CloudStorage.setItem('pinata_jwt', jwt);
+                if (wallet) await tg.CloudStorage.setItem('wallet_address', wallet);
+                if (name) await tg.CloudStorage.setItem('market_name', name);
+                if (fee) await tg.CloudStorage.setItem('market_fee', fee);
+                
+                showMessage("✅ All settings saved!", "success");
+                
+                // Возвращаемся через 2 секунды
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+                
+            } catch (e) {
+                showMessage("❌ Error saving settings: " + e.message, "error");
+            }
+        }
+        
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `message ${type}`;
+            msg.style.display = 'block';
+            
+            setTimeout(() => {
+                msg.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
