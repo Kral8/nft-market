@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Royal NFT | OpenSea Style</title>
+    <title>Royal NFT Market</title>
     
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -14,7 +14,7 @@
     <nav class="navbar">
         <div class="nav-container">
             <div class="brand">
-                <img src="logo.png" alt="Royal" onerror="this.src='https://opensea.io/static/images/logos/opensea.svg'">
+                <img src="logo.png" alt="R" onerror="this.src='https://cdn-icons-png.flaticon.com/512/6001/6001527.png'">
                 <span>Royal Market</span>
             </div>
             <div id="ton-connect-btn"></div>
@@ -27,7 +27,8 @@
         </section>
 
         <div class="nft-grid" id="nft-grid">
-            </div>
+            <p style="text-align: center; grid-column: 1/-1; color: #8a939b;">Connecting to blockchain...</p>
+        </div>
     </main>
 
     <button class="fab-button" onclick="openMintModal()">
@@ -40,23 +41,31 @@
             <h3>Create New Item</h3>
             <div class="input-group">
                 <label>Item Name</label>
-                <input type="text" id="nft-name" placeholder="e.g. Bored Ape #123">
+                <input type="text" id="nft-name" placeholder="e.g. Royal Ape">
             </div>
             <div class="input-group">
                 <label>Price (TON)</label>
-                <input type="number" id="nft-price" placeholder="0.00">
+                <input type="number" id="nft-price" placeholder="0.5">
             </div>
             <div class="input-group">
                 <label>Upload Image</label>
                 <input type="file" id="nft-file" accept="image/*">
             </div>
-            <div class="modal-actions">
-                <button onclick="startMinting()" id="submit-mint">Create & List</button>
-                <button onclick="closeMintModal()" class="btn-cancel">Cancel</button>
+            <div class="modal-actions" style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="startMinting()" id="submit-mint" style="flex: 2; background: #2081e2; color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold;">Create</button>
+                <button onclick="closeMintModal()" style="flex: 1; background: #30363d; color: white; border: none; border-radius: 10px;">Exit</button>
             </div>
         </div>
     </div>
 
     <script type="module" src="script.js"></script>
+
+    <script>
+        // Простые функции открытия модалки
+        function openMintModal() { document.getElementById('mint-modal').style.display = 'block'; }
+        function closeMintModal() { document.getElementById('mint-modal').style.display = 'none'; }
+        window.openMintModal = openMintModal;
+        window.closeMintModal = closeMintModal;
+    </script>
 </body>
 </html>
