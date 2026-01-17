@@ -1,80 +1,68 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Royal Market</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.js"></script>
-    <style>
-        /* Гарантируем, что модалка будет видна */
-        .modal {
-            display: none; 
-            position: fixed; 
-            z-index: 10000; 
-            left: 0; top: 0; 
-            width: 100%; height: 100%; 
-            background-color: rgba(0,0,0,0.8);
-        }
-        .modal-content {
-            background-color: #1c252f;
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 15px;
-            width: 85%;
-            max-width: 400px;
-            color: white;
-        }
-    </style>
-</head>
-<body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="brand"><span>Royal Market</span></div>
-            <div id="ton-connect-btn"></div>
-        </div>
-    </nav>
+<!-- Уведомления -->
+<div id="notification" style="display:none; position:fixed; top:20px; right:20px; padding:15px 20px; border-radius:12px; color:white; font-weight:500; z-index:10001; box-shadow:0 4px 20px rgba(0,0,0,0.3); max-width:350px; backdrop-filter:blur(10px);">
+    <span id="notification-text"></span>
+</div>
 
-    <div id="app">
-        <div class="nft-grid" id="nft-grid">
-            <p style="text-align:center; grid-column:1/-1; padding: 20px;">Searching for NFTs...</p>
-        </div>
-    </div>
+<!-- Индикатор загрузки -->
+<div id="global-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(4,17,29,0.9); z-index:10002; justify-content:center; align-items:center; flex-direction:column;">
+    <div class="loader" style="width:50px; height:50px; border:4px solid #2081e2; border-top:4px solid transparent; border-radius:50%; animation:spin 1s linear infinite;"></div>
+    <p style="color:white; margin-top:20px;" id="loader-text">Processing...</p>
+</div>
 
-    <button class="fab-button" onclick="openMintModal()">
-        <span>+ List NFT</span>
-    </button>
+<script>
+// Глобальные функции для уведомлений
+function showNotification(text, type = 'info') {
+    const notif = document.getElementById('notification');
+    const notifText = document.getElementById('notification-text');
+    
+    notifText.textContent = text;
+    
+    // Цвета по типам
+    const colors = {
+        success: 'linear-gradient(135deg, #00b09b, #96c93d)',
+        error: 'linear-gradient(135deg, #ff416c, #ff4b2b)',
+        info: 'linear-gradient(135deg, #2081e2, #2081e2)',
+        warning: 'linear-gradient(135deg, #f9a825, #ff9800)'
+    };
+    
+    notif.style.background = colors[type] || colors.info;
+    notif.style.display = 'block';
+    
+    // Авто-скрытие через 4 секунды
+    setTimeout(() => {
+        notif.style.display = 'none';
+    }, 4000);
+}
 
-    <div id="mint-modal" class="modal">
-        <div class="modal-content">
-            <h3>New NFT</h3>
-            <input type="text" id="nft-name" placeholder="Name" style="width:90%; padding:10px; margin-bottom:10px; border-radius:8px; border:none;">
-            <input type="number" id="nft-price" placeholder="Price (TON)" style="width:90%; padding:10px; margin-bottom:10px; border-radius:8px; border:none;">
-            <input type="file" id="nft-file" style="margin-bottom:15px; color:white;">
-            <button id="submit-mint" onclick="startMintingProcess()" style="width:100%; background:#2081e2; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; cursor:pointer;">Create & List</button>
-            <button onclick="closeMintModal()" style="width:100%; background:transparent; color:gray; border:none; margin-top:10px; cursor:pointer;">Cancel</button>
-        </div>
-    </div>
+function showLoader(text = "Processing...") {
+    const loader = document.getElementById('global-loader');
+    const loaderText = document.getElementById('loader-text');
+    loaderText.textContent = text;
+    loader.style.display = 'flex';
+}
 
-    <script>
-        // Эти функции работают ГЛОБАЛЬНО и мгновенно
-        function openMintModal() {
-            document.getElementById('mint-modal').style.display = 'block';
-        }
-        function closeMintModal() {
-            document.getElementById('mint-modal').style.display = 'none';
-        }
-        function startMintingProcess() {
-            // Вызываем функцию из нашего модуля
-            if (window.runMinting) {
-                window.runMinting();
-            } else {
-                alert("Please wait, loading system...");
-            }
-        }
-    </script>
+function hideLoader() {
+    const loader = document.getElementById('global-loader');
+    loader.style.display = 'none';
+}
 
-    <script type="module" src="script.js?v=999"></script>
-</body>
-</html>
+// Анимация для загрузчика
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .loader {
+        width: 30px;
+        height: 30px;
+        border: 3px solid #2081e2;
+        border-top: 3px solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+`;
+document.head.appendChild(style);
+</script>
