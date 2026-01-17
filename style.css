@@ -1,0 +1,57 @@
+body {
+    background: #0a0a0c;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+}
+
+#app {
+    max-width: 500px;
+    width: 100%;
+    padding: 20px;
+    text-align: center;
+}
+
+h1 {
+    color: #ffca28;
+    text-shadow: 0 0 15px rgba(255, 202, 40, 0.4);
+    font-size: 28px;
+}
+
+/* Сетка товаров */
+.nft-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.nft-card {
+    background: #16161a;
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 10px;
+    transition: 0.3s;
+}
+
+.nft-card:hover {
+    border-color: #ffca28;
+    transform: translateY(-5px);
+}
+
+.nft-card img {
+    width: 100%;
+    border-radius: 10px;
+}
+
+button {
+    background: linear-gradient(135deg, #ffca28, #ff8f00);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
