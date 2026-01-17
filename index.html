@@ -1,68 +1,312 @@
-<!-- Уведомления -->
-<div id="notification" style="display:none; position:fixed; top:20px; right:20px; padding:15px 20px; border-radius:12px; color:white; font-weight:500; z-index:10001; box-shadow:0 4px 20px rgba(0,0,0,0.3); max-width:350px; backdrop-filter:blur(10px);">
-    <span id="notification-text"></span>
-</div>
-
-<!-- Индикатор загрузки -->
-<div id="global-loader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(4,17,29,0.9); z-index:10002; justify-content:center; align-items:center; flex-direction:column;">
-    <div class="loader" style="width:50px; height:50px; border:4px solid #2081e2; border-top:4px solid transparent; border-radius:50%; animation:spin 1s linear infinite;"></div>
-    <p style="color:white; margin-top:20px;" id="loader-text">Processing...</p>
-</div>
-
-<script>
-// Глобальные функции для уведомлений
-function showNotification(text, type = 'info') {
-    const notif = document.getElementById('notification');
-    const notifText = document.getElementById('notification-text');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Royal Market</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.js"></script>
+    <style>
+        /* Гарантируем, что модалка будет видна */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 10000; 
+            left: 0; top: 0; 
+            width: 100%; height: 100%; 
+            background-color: rgba(0,0,0,0.8);
+        }
+        .modal-content {
+            background-color: #1c252f;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 85%;
+            max-width: 400px;
+            color: white;
+        }
+        
+        /* Стили для бокового меню */
+        .side-menu {
+            display: none;
+            position: fixed;
+            top: 0;
+            right: -280px;
+            width: 280px;
+            height: 100%;
+            background: #04111d;
+            z-index: 10001;
+            transition: right 0.3s;
+            box-shadow: -5px 0 30px rgba(0,0,0,0.5);
+            border-left: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .menu-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: rgba(4, 17, 29, 0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Уведомления */
+        .notification {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 500;
+            z-index: 10002;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            max-width: 350px;
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Индикатор загрузки */
+        .global-loader {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(4,17,29,0.9);
+            z-index: 10003;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        
+        .loader {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #2081e2;
+            border-top: 4px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Кнопка меню -->
+    <button class="menu-btn" onclick="openMenu()">☰</button>
     
-    notifText.textContent = text;
-    
-    // Цвета по типам
-    const colors = {
-        success: 'linear-gradient(135deg, #00b09b, #96c93d)',
-        error: 'linear-gradient(135deg, #ff416c, #ff4b2b)',
-        info: 'linear-gradient(135deg, #2081e2, #2081e2)',
-        warning: 'linear-gradient(135deg, #f9a825, #ff9800)'
-    };
-    
-    notif.style.background = colors[type] || colors.info;
-    notif.style.display = 'block';
-    
-    // Авто-скрытие через 4 секунды
-    setTimeout(() => {
-        notif.style.display = 'none';
-    }, 4000);
-}
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="brand"><span>Royal Market</span></div>
+            <div id="ton-connect-btn"></div>
+        </div>
+    </nav>
 
-function showLoader(text = "Processing...") {
-    const loader = document.getElementById('global-loader');
-    const loaderText = document.getElementById('loader-text');
-    loaderText.textContent = text;
-    loader.style.display = 'flex';
-}
+    <div id="app">
+        <div class="nft-grid" id="nft-grid">
+            <p style="text-align:center; grid-column:1/-1; padding: 20px;">Searching for NFTs...</p>
+        </div>
+    </div>
 
-function hideLoader() {
-    const loader = document.getElementById('global-loader');
-    loader.style.display = 'none';
-}
+    <button class="fab-button" onclick="openMintModal()">
+        <span>+ List NFT</span>
+    </button>
 
-// Анимация для загрузчика
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-    
-    .loader {
-        width: 30px;
-        height: 30px;
-        border: 3px solid #2081e2;
-        border-top: 3px solid transparent;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto;
-    }
-`;
-document.head.appendChild(style);
-</script>
+    <!-- Модалка создания NFT -->
+    <div id="mint-modal" class="modal">
+        <div class="modal-content">
+            <h3>New NFT</h3>
+            <input type="text" id="nft-name" placeholder="Name" style="width:90%; padding:10px; margin-bottom:10px; border-radius:8px; border:none;">
+            <input type="number" id="nft-price" placeholder="Price (TON)" style="width:90%; padding:10px; margin-bottom:10px; border-radius:8px; border:none;">
+            <input type="file" id="nft-file" style="margin-bottom:15px; color:white;">
+            <button id="submit-mint" onclick="startMintingProcess()" style="width:100%; background:#2081e2; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; cursor:pointer;">Create & List</button>
+            <button onclick="closeMintModal()" style="width:100%; background:transparent; color:gray; border:none; margin-top:10px; cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Боковое меню -->
+    <div id="side-menu" class="side-menu">
+        <div style="padding:30px 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+                <h2 style="margin:0; color:#ffd700;">Menu</h2>
+                <button onclick="closeMenu()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">×</button>
+            </div>
+            
+            <div style="margin-bottom:30px;">
+                <div style="display:flex; align-items:center; gap:10px; padding:12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:10px;">
+                    <div style="width:40px; height:40px; background:#2081e2; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">U</div>
+                    <div>
+                        <div id="user-address" style="font-size:12px; color:#8a939b;">Not connected</div>
+                        <div id="user-balance" style="font-size:14px; color:white;">0 TON</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <a href="index.html" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
+                    🏠 Marketplace
+                </a>
+                
+                <a href="admin.html" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
+                    ⚙️ Admin Settings
+                </a>
+                
+                <a href="my-nfts.html" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
+                    🖼️ My NFTs
+                </a>
+                
+                <a href="#" onclick="toggleTheme()" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
+                    🌙 Toggle Theme
+                </a>
+                
+                <a href="#" onclick="clearCache()" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
+                    🗑️ Clear Cache
+                </a>
+            </div>
+            
+            <div style="margin-top:40px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.1);">
+                <div style="font-size:12px; color:#8a939b; text-align:center;">
+                    <p>Royal NFT Market v1.0</p>
+                    <p>Powered by TON • IPFS • Firebase</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div id="notification" class="notification">
+        <span id="notification-text"></span>
+    </div>
+
+    <!-- Индикатор загрузки -->
+    <div id="global-loader" class="global-loader">
+        <div class="loader"></div>
+        <p style="color:white; margin-top:20px;" id="loader-text">Processing...</p>
+    </div>
+
+    <script>
+        // ===== ФУНКЦИИ МОДАЛКИ =====
+        function openMintModal() {
+            document.getElementById('mint-modal').style.display = 'block';
+        }
+        function closeMintModal() {
+            document.getElementById('mint-modal').style.display = 'none';
+        }
+        function startMintingProcess() {
+            if (window.runMinting) {
+                window.runMinting();
+            } else {
+                alert("Please wait, loading system...");
+            }
+        }
+
+        // ===== ФУНКЦИИ МЕНЮ =====
+        function openMenu() {
+            document.getElementById('side-menu').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('side-menu').style.right = '0';
+            }, 10);
+        }
+
+        function closeMenu() {
+            document.getElementById('side-menu').style.right = '-280px';
+            setTimeout(() => {
+                document.getElementById('side-menu').style.display = 'none';
+            }, 300);
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            if (body.getAttribute('data-theme') === 'dark') {
+                body.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        function clearCache() {
+            localStorage.clear();
+            sessionStorage.clear();
+            alert('Cache cleared! Page will reload.');
+            window.location.reload();
+        }
+
+        // ===== ФУНКЦИИ УВЕДОМЛЕНИЙ =====
+        function showNotification(text, type = 'info') {
+            const notif = document.getElementById('notification');
+            const notifText = document.getElementById('notification-text');
+            
+            notifText.textContent = text;
+            
+            const colors = {
+                success: 'linear-gradient(135deg, #00b09b, #96c93d)',
+                error: 'linear-gradient(135deg, #ff416c, #ff4b2b)',
+                info: 'linear-gradient(135deg, #2081e2, #2081e2)',
+                warning: 'linear-gradient(135deg, #f9a825, #ff9800)'
+            };
+            
+            notif.style.background = colors[type] || colors.info;
+            notif.style.display = 'block';
+            
+            setTimeout(() => {
+                notif.style.display = 'none';
+            }, 4000);
+        }
+
+        function showLoader(text = "Processing...") {
+            const loader = document.getElementById('global-loader');
+            const loaderText = document.getElementById('loader-text');
+            loaderText.textContent = text;
+            loader.style.display = 'flex';
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('global-loader');
+            loader.style.display = 'none';
+        }
+
+        // ===== УПРАВЛЕНИЕ МЕНЮ =====
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('side-menu');
+            const menuBtn = document.querySelector('.menu-btn');
+            
+            if (menu.style.display === 'block' && 
+                !menu.contains(e.target) && 
+                !menuBtn.contains(e.target)) {
+                closeMenu();
+            }
+        });
+
+        // ===== TELEGRAM WEB APP =====
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.expand();
+            tg.disableVerticalSwipes();
+            
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => {
+                tg.close();
+            });
+        }
+    </script>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
