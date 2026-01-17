@@ -1,174 +1,127 @@
-:root {
-    --bg-color: #04111d;
-    --card-bg: #18202a;
-    --accent-color: #2081e2;
-    --text-main: #ffffff;
-    --text-dim: #8a939b;
-    --gold: #ffd700;
-}
-
-body {
-    background-color: var(--bg-color);
-    color: var(--text-main);
-    font-family: 'Poppins', sans-serif;
-    margin: 0;
-    -webkit-font-smoothing: antialiased;
-}
-
-.navbar {
-    position: sticky;
-    top: 0;
-    background: rgba(4, 17, 29, 0.8);
-    backdrop-filter: blur(10px);
-    z-index: 100;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.nav-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 12px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 700;
-    font-size: 20px;
-}
-
-.brand img { width: 35px; height: 35px; }
-
-.hero {
-    padding: 40px 20px 20px;
-    text-align: center;
-}
-
-.hero h2 {
-    font-size: 24px;
-    background: linear-gradient(90deg, #fff, var(--text-dim));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.nft-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 20px;
-    padding: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
+/* Загрузчики и анимации */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .nft-card {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Улучшенные карточки NFT */
+.nft-card {
     background: var(--card-bg);
-    border-radius: 15px;
+    border-radius: 16px;
     overflow: hidden;
-    transition: transform 0.2s;
-    border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
 }
 
-.nft-card:hover { transform: translateY(-5px); }
+.nft-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border-color: rgba(32, 129, 226, 0.3);
+}
 
-.nft-card img {
+.nft-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #2081e2, #ffd700);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.nft-card:hover::before {
+    opacity: 1;
+}
+
+/* Улучшенные инпуты в модалке */
+.modal-content input, 
+.modal-content textarea {
     width: 100%;
-    aspect-ratio: 1/1;
-    object-fit: cover;
-}
-
-.nft-info {
-    padding: 12px;
-}
-
-.nft-info h3 {
-    margin: 0;
-    font-size: 14px;
-    color: var(--text-dim);
-}
-
-.nft-info .name {
-    display: block;
+    padding: 14px;
+    margin-bottom: 16px;
+    background: rgba(13, 17, 23, 0.8);
+    border: 2px solid #30363d;
+    border-radius: 10px;
+    color: white;
     font-size: 16px;
-    font-weight: 600;
-    margin-top: 4px;
-}
-
-.nft-info .price-tag {
-    display: block;
-    margin-top: 10px;
-    color: var(--gold);
-    font-weight: 700;
-}
-
-.buy-btn {
-    width: 100%;
-    background: var(--accent-color);
-    border: none;
-    color: white;
-    padding: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    border-radius: 0 0 15px 15px;
-}
-
-.fab-button {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    background: var(--accent-color);
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 30px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: bold;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-    z-index: 10;
-}
-
-/* Modal */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(5px);
-    z-index: 1000;
-}
-
-.modal-content {
-    background: var(--card-bg);
-    max-width: 400px;
-    margin: 50px auto;
-    padding: 25px;
-    border-radius: 20px;
-    border: 1px solid rgba(255,255,255,0.1);
-}
-
-.input-group { margin-bottom: 15px; }
-.input-group label { display: block; margin-bottom: 5px; font-size: 12px; color: var(--text-dim); }
-.input-group input {
-    width: 100%;
-    background: #0d1117;
-    border: 1px solid #30363d;
-    padding: 12px;
-    border-radius: 8px;
-    color: white;
+    transition: all 0.3s;
     box-sizing: border-box;
 }
 
-#submit-mint {
+.modal-content input:focus, 
+.modal-content textarea:focus {
+    outline: none;
+    border-color: #2081e2;
+    background: rgba(32, 129, 226, 0.1);
+}
+
+/* Стилизация файлового инпута */
+#nft-file {
     width: 100%;
-    background: var(--accent-color);
-    color: white;
-    border: none;
     padding: 14px;
+    background: rgba(13, 17, 23, 0.8);
+    border: 2px dashed #30363d;
     border-radius: 10px;
-    font-weight: bold;
+    color: #8a939b;
+    cursor: pointer;
+    margin-bottom: 16px;
+}
+
+#nft-file:hover {
+    border-color: #2081e2;
+    background: rgba(32, 129, 226, 0.05);
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .nft-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+        padding: 15px;
+    }
+    
+    .modal-content {
+        width: 90%;
+        margin: 20% auto;
+        padding: 20px;
+    }
+    
+    .fab-button {
+        bottom: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+}
+
+/* Темная тема TON Connect кнопки */
+.ton-connect-button__button {
+    background: linear-gradient(135deg, #2081e2, #1a73e8) !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+}
+
+/* Стили для текста "пустой маркетплейс" */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #8a939b;
+}
+
+.empty-state h3 {
+    color: white;
+    margin-bottom: 10px;
+}
+
+/* Плавные переходы */
+* {
+    transition: background-color 0.3s, border-color 0.3s;
 }
