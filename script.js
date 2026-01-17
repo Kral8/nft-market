@@ -1,5 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// В самом верху script.js после импортов Firebase добавь:
+window.startMinting = startMinting;
+window.processPayment = processPayment;
 
 const firebaseConfig = {
     apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
