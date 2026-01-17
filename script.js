@@ -20,9 +20,6 @@ const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
     buttonRootId: 'ton-connect-btn'
 });
 
-window.openMintModal = () => document.getElementById('mint-modal').style.display = 'block';
-window.closeMintModal = () => document.getElementById('mint-modal').style.display = 'none';
-
 window.processPayment = async (price) => {
     if (!tonConnectUI.connected) {
         await tonConnectUI.openModal();
@@ -38,38 +35,36 @@ window.processPayment = async (price) => {
 async function loadNFTs() {
     const grid = document.getElementById('nft-grid');
     try {
-        const snap = await getDocs(collection(db, "nfts")); // Упрощенный запрос
+        const snap = await getDocs(collection(db, "nfts"));
         grid.innerHTML = '';
-        
         if (snap.empty) {
-            grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:gray; padding:20px;">No NFTs in database. Create your first one!</p>';
+            grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:gray;">Market is empty.</p>';
             return;
         }
-
         snap.forEach(doc => {
             const nft = doc.data();
             const div = document.createElement('div');
             div.className = 'nft-card';
             div.innerHTML = `
-                <img src="${nft.image}" style="width:100%; border-radius:10px 10px 0 0; aspect-ratio:1/1; object-fit:cover;">
-                <div style="padding:10px; background: #18202a;">
-                    <b style="color:white; display:block; font-size:16px;">${nft.name}</b>
-                    <span style="color:#ffd700; font-weight:bold;">${nft.price} TON</span>
+                <img src="${nft.image}" style="width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:10px 10px 0 0;">
+                <div style="padding:10px;">
+                    <b style="color:white;">${nft.name}</b><br>
+                    <span style="color:#ffd700;">${nft.price} TON</span>
                 </div>
-                <button onclick="window.processPayment('${nft.price}')" style="width:100%; background:#2081e2; color:white; border:none; padding:12px; border-radius:0 0 10px 10px; font-weight:bold; cursor:pointer;">Buy Now</button>
+                <button onclick="window.processPayment('${nft.price}')" style="width:100%; background:#2081e2; color:white; border:none; padding:10px; border-radius:0 0 10px 10px; font-weight:bold; cursor:pointer;">Buy Now</button>
             `;
             grid.appendChild(div);
         });
-    } catch (e) {
-        grid.innerHTML = '<p style="color:red; text-align:center; grid-column:1/-1;">Error: ' + e.message + '</p>';
-    }
+    } catch (e) { console.error(e); }
 }
 
-window.startMinting = async () => {
+// Привязываем функцию создания к window
+window.runMinting = async () => {
     const name = document.getElementById('nft-name').value;
     const price = document.getElementById('nft-price').value;
     const file = document.getElementById('nft-file').files[0];
-    if(!name || !price || !file) return alert("Please fill all fields and select a file.");
+    
+    if(!name || !price || !file) return alert("Fill everything!");
 
     const btn = document.getElementById('submit-mint');
     btn.innerText = "Minting..."; btn.disabled = true;
@@ -84,19 +79,13 @@ window.startMinting = async () => {
         const data = await res.json();
         const imgUrl = `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`;
         
-        await addDoc(collection(db, "nfts"), { 
-            name: name, 
-            price: price, 
-            image: imgUrl, 
-            createdAt: Date.now() 
-        });
-        
-        window.closeMintModal();
-        await loadNFTs();
+        await addDoc(collection(db, "nfts"), { name, price, image: imgUrl, createdAt: Date.now() });
+        document.getElementById('mint-modal').style.display = 'none';
+        loadNFTs();
     } catch (e) {
-        alert("Upload Error: " + e.message);
+        alert("Error: " + e.message);
     } finally {
-        btn.innerText = "Create"; btn.disabled = false;
+        btn.innerText = "Create & List"; btn.disabled = false;
     }
 };
 
