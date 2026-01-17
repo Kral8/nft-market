@@ -1,0 +1,106 @@
+<!-- Добавь этот код в index.html перед закрывающим тегом </body> -->
+
+<div id="side-menu" style="display:none; position:fixed; top:0; right:-300px; width:300px; height:100%; background:#04111d; z-index:10001; transition:right 0.3s; box-shadow:-5px 0 30px rgba(0,0,0,0.5); border-left:1px solid rgba(255,255,255,0.1);">
+    <div style="padding:30px 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+            <h2 style="margin:0; color:#ffd700;">Menu</h2>
+            <button onclick="closeMenu()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">×</button>
+        </div>
+        
+        <div style="margin-bottom:30px;">
+            <div style="display:flex; align-items:center; gap:10px; padding:12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:10px;">
+                <div style="width:40px; height:40px; background:#2081e2; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">U</div>
+                <div>
+                    <div id="user-address" style="font-size:12px; color:#8a939b;">Not connected</div>
+                    <div id="user-balance" style="font-size:14px; color:white;">0 TON</div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <a href="index.html" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
+                🏠 Marketplace
+            </a>
+            
+            <a href="admin.html" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
+                ⚙️ Admin Settings
+            </a>
+            
+            <a href="my-nfts.html" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
+                🖼️ My NFTs
+            </a>
+            
+            <a href="#" onclick="toggleTheme()" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
+                🌙 Toggle Theme
+            </a>
+            
+            <a href="#" onclick="clearCache()" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
+                🗑️ Clear Cache
+            </a>
+        </div>
+        
+        <div style="margin-top:40px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.1);">
+            <div style="font-size:12px; color:#8a939b; text-align:center;">
+                <p>Royal NFT Market v1.0</p>
+                <p>Powered by TON • IPFS • Firebase</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button onclick="openMenu()" style="position:fixed; top:15px; left:15px; background:rgba(4,17,29,0.8); border:1px solid rgba(255,255,255,0.1); color:white; width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:1000; backdrop-filter:blur(10px);">
+    ☰
+</button>
+
+<script>
+function openMenu() {
+    document.getElementById('side-menu').style.display = 'block';
+    setTimeout(() => {
+        document.getElementById('side-menu').style.right = '0';
+    }, 10);
+}
+
+function closeMenu() {
+    document.getElementById('side-menu').style.right = '-300px';
+    setTimeout(() => {
+        document.getElementById('side-menu').style.display = 'none';
+    }, 300);
+}
+
+function toggleTheme() {
+    const body = document.body;
+    if (body.getAttribute('data-theme') === 'dark') {
+        body.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+    } else {
+        body.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+    }
+}
+
+function clearCache() {
+    localStorage.clear();
+    sessionStorage.clear();
+    alert('Cache cleared! Page will reload.');
+    window.location.reload();
+}
+
+// Обновляем информацию о пользователе
+function updateUserInfo() {
+    const address = window.CURRENT_USER_ADDRESS || 'Not connected';
+    document.getElementById('user-address').textContent = 
+        address.length > 10 ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
+}
+
+// Закрытие меню при клике вне его
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('side-menu');
+    const menuBtn = document.querySelector('button[onclick="openMenu()"]');
+    
+    if (menu.style.display === 'block' && 
+        !menu.contains(e.target) && 
+        !menuBtn.contains(e.target)) {
+        closeMenu();
+    }
+});
+</script>
