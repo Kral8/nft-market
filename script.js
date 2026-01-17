@@ -13,7 +13,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// 1. Инициализация TON Connect
+// Инициализация TON Connect
 window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
     manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
     buttonRootId: 'ton-connect-btn'
@@ -22,20 +22,15 @@ window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
 const MY_WALLET = "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98";
 const PINATA_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjYWMxZDM2Yy04MDVmLTQzYTQtYmQ5My1iNzhmNmM0NTI1MDAiLCJlbWFpbCI6InNhYnRpbThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjBjNGVhZTZmZGZiYTVmYzM2OTZkIiwic2NvcGVkS2V5U2VjcmV0IjoiYjA0NmFiNjc5MTAyY2IzNGVjOGRjZDNmN2Q5N2Y2OWVhNTNmNDQ3MjUxMDI3NGRjYWU3MjJlYmI0YjAyOTU5MyIsImV4cCI6MTgwMDIwMjY0MH0.uC3hCpCcf2uuxBs3bY5u5d6KHNaGtngHufen-0HZnbw";
 
-// 2. Функция загрузки NFT
 async function loadNFTs() {
     const grid = document.getElementById('nft-grid');
-    if (!grid) return;
-    
-    grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center;">Searching blockchain...</p>';
-    
     try {
         const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
         const snap = await getDocs(q);
         grid.innerHTML = '';
         
         if (snap.empty) {
-            grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #8a939b;">Market is empty. Be the first to list!</p>';
+            grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #8a939b;">Market is empty. Click "List NFT" to start!</p>';
             return;
         }
 
@@ -55,13 +50,13 @@ async function loadNFTs() {
             grid.appendChild(card);
         });
     } catch (e) { 
-        console.error(e);
-        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center;">Error loading NFTs.</p>'; 
+        console.error("Firebase Error:", e);
+        grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center;">Error: check Firebase Rules</p>`;
     }
 }
 
-// 3. Функция оплаты
-async function processPayment(amount) {
+// Функции для окна (window)
+window.processPayment = async (amount) => {
     if (!window.tonConnectUI.connected) {
         await window.tonConnectUI.openModal();
         return;
@@ -70,29 +65,19 @@ async function processPayment(amount) {
         validUntil: Math.floor(Date.now()/1000) + 600,
         messages: [{ address: MY_WALLET, amount: (parseFloat(amount)*1000000000).toString() }]
     };
-    try { 
-        await window.tonConnectUI.sendTransaction(tx); 
-        alert("Victory! NFT is yours."); 
-    } catch (e) { 
-        alert("Payment declined."); 
-    }
+    try { await window.tonConnectUI.sendTransaction(tx); alert("Success!"); }
+    catch (e) { alert("Canceled"); }
 }
 
-// 4. Функция создания NFT
-async function startMinting() {
+window.startMinting = async () => {
     const name = document.getElementById('nft-name').value;
     const price = document.getElementById('nft-price').value;
     const file = document.getElementById('nft-file').files[0];
-    
-    if(!name || !price || !file) return alert("Complete all fields!");
-    
+    if(!name || !price || !file) return alert("Fill all!");
     const btn = document.getElementById('submit-mint');
-    btn.innerText = "Uploading to IPFS..."; btn.disabled = true;
-
+    btn.innerText = "Loading..."; btn.disabled = true;
     try {
-        const fd = new FormData(); 
-        fd.append('file', file);
-        
+        const fd = new FormData(); fd.append('file', file);
         const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${PINATA_JWT}` },
@@ -100,28 +85,11 @@ async function startMinting() {
         });
         const data = await res.json();
         const imgUrl = `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`;
-
-        await addDoc(collection(db, "nfts"), { 
-            name: name, 
-            price: price, 
-            image: imgUrl, 
-            createdAt: Date.now() 
-        });
-        
-        if (window.closeMintModal) window.closeMintModal();
+        await addDoc(collection(db, "nfts"), { name, price, image: imgUrl, createdAt: Date.now() });
+        window.closeMintModal();
         loadNFTs();
-    } catch (e) { 
-        console.error(e);
-        alert("Minting failed."); 
-    } finally { 
-        btn.innerText = "Create & List"; 
-        btn.disabled = false; 
-    }
+    } catch (e) { alert("Error!"); }
+    finally { btn.innerText = "Create"; btn.disabled = false; }
 }
 
-// ГЛОБАЛЬНАЯ ПРИВЯЗКА (Важно: делать в конце файла!)
-window.processPayment = processPayment;
-window.startMinting = startMinting;
-
-// Запуск
 loadNFTs();
