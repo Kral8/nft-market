@@ -103,7 +103,6 @@
                 window.location.href = 'index.html';
             });
             
-            // Загружаем сохраненные настройки
             loadSettings();
         } else {
             alert("Please open this page from Telegram bot");
@@ -157,7 +156,6 @@
                 
                 showMessage("✅ All settings saved!", "success");
                 
-                // Возвращаемся через 2 секунды
                 setTimeout(() => {
                     window.location.href = 'index.html';
                 }, 2000);
