@@ -9,83 +9,20 @@
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.js"></script>
     
     <style>
-        body {
-            background-color: #0d0d12 !important;
-            color: #ffffff !important;
-            font-family: sans-serif;
-            margin: 0;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+        body { background-color: #0d0d12; color: #ffffff; font-family: sans-serif; margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; }
         #app { width: 100%; max-width: 500px; }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            margin-bottom: 20px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 10px;
-        }
+        .header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
         h1 { color: #ffd700; margin: 0; font-size: 20px; }
-        .nft-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            width: 100%;
-            padding-bottom: 100px;
-        }
-        .card {
-            background: #1c1c24;
-            border-radius: 12px;
-            padding: 10px;
-            text-align: center;
-            border: 1px solid #333;
-        }
+        #ton-btn { min-height: 40px; min-width: 150px; }
+        .nft-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 100%; padding-bottom: 100px; }
+        .card { background: #1c1c24; border-radius: 12px; padding: 10px; text-align: center; border: 1px solid #333; }
         .card img { width: 100%; border-radius: 8px; aspect-ratio: 1/1; object-fit: cover; }
         .card h3 { font-size: 14px; margin: 10px 0 5px; }
         .card p { color: #ffd700; font-weight: bold; margin: 0 0 10px; }
-        .buy-btn {
-            background: #ffd700;
-            color: #000;
-            border: none;
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        #mint-main-btn {
-            position: fixed;
-            bottom: 20px;
-            width: 90%;
-            max-width: 400px;
-            padding: 15px;
-            background: #ffd700;
-            border: none;
-            border-radius: 12px;
-            font-weight: bold;
-            color: #000;
-            z-index: 100;
-        }
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000;
-        }
-        .modal-content {
-            background: #1c1c24;
-            margin: 15% auto;
-            padding: 20px;
-            width: 80%;
-            border-radius: 15px;
-            border: 1px solid #ffd700;
-        }
+        .buy-btn { background: #ffd700; color: #000; border: none; width: 100%; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #mint-main-btn { position: fixed; bottom: 20px; width: 90%; max-width: 400px; padding: 15px; background: #ffd700; border: none; border-radius: 12px; font-weight: bold; color: #000; z-index: 100; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; }
+        .modal-content { background: #1c1c24; margin: 15% auto; padding: 20px; width: 80%; border-radius: 15px; border: 1px solid #ffd700; }
         input { width: 100%; padding: 10px; margin: 10px 0; background: #000; color: #fff; border: 1px solid #444; border-radius: 8px; box-sizing: border-box; }
     </style>
 </head>
@@ -96,10 +33,7 @@
             <h1>Royal</h1>
             <div id="ton-btn"></div>
         </div>
-
-        <div class="nft-grid" id="grid">
-            </div>
-
+        <div class="nft-grid" id="grid"></div>
         <button id="mint-main-btn" onclick="showModal()">+ List Your NFT</button>
     </div>
 
@@ -130,7 +64,13 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Делаем функции глобальными, чтобы кнопки их видели
+        // 1. Инициализация TON Connect прямо внутри модуля
+        window.tonUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
+            buttonRootId: 'ton-btn'
+        });
+
+        // 2. Функция покупки
         window.startBuying = async (amount) => {
             if (!window.tonUI.connected) {
                 await window.tonUI.openModal();
@@ -138,14 +78,23 @@
             }
             const tx = {
                 validUntil: Math.floor(Date.now() / 1000) + 600,
-                messages: [{ address: "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98", amount: (parseFloat(amount) * 1000000000).toString() }]
+                messages: [{ 
+                    address: "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98", 
+                    amount: (parseFloat(amount) * 1000000000).toString() 
+                }]
             };
-            try { await window.tonUI.sendTransaction(tx); alert("Success!"); } catch (e) { alert("Canceled"); }
+            try { 
+                await window.tonUI.sendTransaction(tx); 
+                alert("Success!"); 
+            } catch (e) { 
+                alert("Transaction canceled or failed."); 
+            }
         };
 
+        // 3. Загрузка товаров
         window.loadItems = async () => {
             const grid = document.getElementById('grid');
-            grid.innerHTML = '<p style="grid-column:1/3; text-align:center;">Loading...</p>';
+            grid.innerHTML = '<p style="grid-column:1/3; text-align:center;">Loading Market...</p>';
             try {
                 const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
                 const snap = await getDocs(q);
@@ -154,19 +103,25 @@
                     const nft = doc.data();
                     const item = document.createElement('div');
                     item.className = 'card';
-                    item.innerHTML = `<img src="${nft.image}"><h3>${nft.name}</h3><p>${nft.price} TON</p><button class="buy-btn" onclick="startBuying('${nft.price}')">Buy Now</button>`;
+                    item.innerHTML = `
+                        <img src="${nft.image}">
+                        <h3>${nft.name}</h3>
+                        <p>${nft.price} TON</p>
+                        <button class="buy-btn" onclick="startBuying('${nft.price}')">Buy Now</button>
+                    `;
                     grid.appendChild(item);
                 });
-            } catch (e) { grid.innerHTML = 'Error loading items.'; console.log(e); }
+            } catch (e) { grid.innerHTML = 'Error loading items.'; }
         };
 
+        // 4. Создание NFT
         window.mint = async () => {
             const n = document.getElementById('name').value;
             const p = document.getElementById('price').value;
             const f = document.getElementById('file').files[0];
-            if(!n || !p || !f) { alert("Fill all!"); return; }
+            if(!n || !p || !f) { alert("Fill all fields!"); return; }
             const b = document.getElementById('m-btn');
-            b.innerText = "Minting..."; b.disabled = true;
+            b.innerText = "Uploading..."; b.disabled = true;
             try {
                 const fd = new FormData(); fd.append('file', f);
                 const r = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
@@ -176,24 +131,18 @@
                 });
                 const d = await r.json();
                 await addDoc(collection(db, "nfts"), { name: n, price: p, image: `https://gateway.pinata.cloud/ipfs/${d.IpfsHash}`, createdAt: Date.now() });
-                hideModal(); window.loadItems();
-            } catch(e) { alert("Error minting!"); } finally { b.innerText = "Create"; b.disabled = false; }
+                window.hideModal(); window.loadItems();
+            } catch(e) { alert("Error!"); } finally { b.innerText = "Create"; b.disabled = false; }
         };
 
-        // Запускаем загрузку после инициализации Firebase
         window.loadItems();
     </script>
 
     <script>
-        // Инициализация TON Connect
-        window.tonUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
-            buttonRootId: 'ton-btn'
-        });
-
         function showModal() { document.getElementById('modal').style.display = 'block'; }
         function hideModal() { document.getElementById('modal').style.display = 'none'; }
-        
+        window.hideModal = hideModal;
+
         const WebApp = window.Telegram.WebApp;
         WebApp.ready();
         WebApp.expand();
