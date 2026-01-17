@@ -20,11 +20,9 @@ const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
     buttonRootId: 'ton-connect-btn'
 });
 
-// Кнопки модалки
 window.openMintModal = () => document.getElementById('mint-modal').style.display = 'block';
 window.closeMintModal = () => document.getElementById('mint-modal').style.display = 'none';
 
-// Функция покупки
 window.processPayment = async (price) => {
     if (!tonConnectUI.connected) {
         await tonConnectUI.openModal();
@@ -34,37 +32,51 @@ window.processPayment = async (price) => {
         validUntil: Math.floor(Date.now() / 1000) + 600,
         messages: [{ address: MY_WALLET, amount: (parseFloat(price) * 1000000000).toString() }]
     };
-    try { await tonConnectUI.sendTransaction(tx); alert("Success!"); } catch (e) { alert("Error"); }
+    try { 
+        await tonConnectUI.sendTransaction(tx); 
+        alert("Success! Check your wallet."); 
+    } catch (e) { 
+        alert("Payment canceled"); 
+    }
 };
 
-// Загрузка NFT
-async function load() {
+async function loadNFTs() {
     const grid = document.getElementById('nft-grid');
-    const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
-    const snap = await getDocs(q);
-    grid.innerHTML = '';
-    snap.forEach(doc => {
-        const nft = doc.data();
-        const div = document.createElement('div');
-        div.className = 'nft-card';
-        div.innerHTML = `
-            <img src="${nft.image}" style="width:100%">
-            <div class="nft-info">
-                <b>${nft.name}</b><br>
-                <span>${nft.price} TON</span>
-            </div>
-            <button class="buy-btn" onclick="window.processPayment('${nft.price}')">Buy Now</button>
-        `;
-        grid.appendChild(div);
-    });
+    try {
+        const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
+        const snap = await getDocs(q);
+        grid.innerHTML = '';
+        if (snap.empty) {
+            grid.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:gray;">Market is empty.</p>';
+        }
+        snap.forEach(doc => {
+            const nft = doc.data();
+            const div = document.createElement('div');
+            div.className = 'nft-card';
+            div.innerHTML = `
+                <img src="${nft.image}" style="width:100%; border-radius:10px 10px 0 0;">
+                <div style="padding:10px;">
+                    <b style="color:white; display:block;">${nft.name}</b>
+                    <span style="color:#ffd700;">${nft.price} TON</span>
+                </div>
+                <button onclick="window.processPayment('${nft.price}')" style="width:100%; background:#2081e2; color:white; border:none; padding:10px; border-radius:0 0 10px 10px; font-weight:bold; cursor:pointer;">Buy Now</button>
+            `;
+            grid.appendChild(div);
+        });
+    } catch (e) {
+        grid.innerHTML = '<p style="color:red;">Firebase Error: ' + e.message + '</p>';
+    }
 }
 
-// Создание
 window.startMinting = async () => {
     const name = document.getElementById('nft-name').value;
     const price = document.getElementById('nft-price').value;
     const file = document.getElementById('nft-file').files[0];
-    if(!name || !price || !file) return;
+    if(!name || !price || !file) return alert("Fill all fields!");
+
+    const btn = document.getElementById('submit-mint');
+    btn.innerText = "Uploading..."; btn.disabled = true;
+
     try {
         const fd = new FormData(); fd.append('file', file);
         const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
@@ -73,10 +85,16 @@ window.startMinting = async () => {
             body: fd
         });
         const data = await res.json();
-        await addDoc(collection(db, "nfts"), { name, price, image: `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`, createdAt: Date.now() });
+        const imgUrl = `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`;
+        
+        await addDoc(collection(db, "nfts"), { name, price, image: imgUrl, createdAt: Date.now() });
         window.closeMintModal();
-        load();
-    } catch (e) { alert("Mint Error"); }
+        loadNFTs();
+    } catch (e) {
+        alert("Error: " + e.message);
+    } finally {
+        btn.innerText = "Create"; btn.disabled = false;
+    }
 };
 
-load();
+loadNFTs();
