@@ -32,8 +32,8 @@
             display: none;
             position: fixed;
             top: 0;
-            right: -280px;
-            width: 280px;
+            right: -300px;
+            width: 300px;
             height: 100%;
             background: #04111d;
             z-index: 10001;
@@ -104,6 +104,37 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* Стили для фильтров */
+        .filters {
+            margin: 0 20px 30px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .filter-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #8a939b;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .filter-btn:hover {
+            background: rgba(32, 129, 226, 0.1);
+            color: white;
+        }
+        
+        .filter-btn.active {
+            background: #2081e2;
+            color: white;
+            border-color: #2081e2;
+        }
     </style>
 </head>
 <body>
@@ -118,8 +149,41 @@
     </nav>
 
     <div id="app">
+        <!-- Герой секция -->
+        <div class="hero">
+            <h1>Royal NFT Market</h1>
+            <p>The premium NFT marketplace on TON Blockchain. Create, collect, and trade unique digital assets.</p>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="total-nfts">0</div>
+                    <div class="stat-label">Total NFTs</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="active-sellers">0</div>
+                    <div class="stat-label">Active Sellers</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="total-volume">0</div>
+                    <div class="stat-label">TON Volume</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Фильтры -->
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterNFTs('all')">All</button>
+            <button class="filter-btn" onclick="filterNFTs('newest')">Newest</button>
+            <button class="filter-btn" onclick="filterNFTs('lowest')">Lowest Price</button>
+            <button class="filter-btn" onclick="filterNFTs('highest')">Highest Price</button>
+        </div>
+
+        <!-- Сетка NFT -->
         <div class="nft-grid" id="nft-grid">
-            <p style="text-align:center; grid-column:1/-1; padding: 20px;">Searching for NFTs...</p>
+            <div class="loading-state">
+                <div class="loader"></div>
+                <p>Loading NFTs from marketplace...</p>
+            </div>
         </div>
     </div>
 
@@ -131,59 +195,58 @@
     <div id="mint-modal" class="modal">
         <div class="modal-content">
             <h3>New NFT</h3>
-            <input type="text" id="nft-name" placeholder="Name" style="width:90%; padding:10px; margin-bottom:10px; border-radius:8px; border:none;">
-            <input type="number" id="nft-price" placeholder="Price (TON)" style="width:90%; padding:10px; margin-bottom:10px; border-radius:8px; border:none;">
-            <input type="file" id="nft-file" style="margin-bottom:15px; color:white;">
-            <button id="submit-mint" onclick="startMintingProcess()" style="width:100%; background:#2081e2; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; cursor:pointer;">Create & List</button>
-            <button onclick="closeMintModal()" style="width:100%; background:transparent; color:gray; border:none; margin-top:10px; cursor:pointer;">Cancel</button>
+            <input type="text" id="nft-name" placeholder="NFT Name" class="modal-input">
+            <input type="number" id="nft-price" placeholder="Price in TON" class="modal-input">
+            <input type="file" id="nft-file" accept="image/*" class="file-input">
+            <button id="submit-mint" onclick="startMintingProcess()" class="modal-btn">Create & List</button>
+            <button onclick="closeMintModal()" class="modal-btn modal-btn-cancel">Cancel</button>
         </div>
     </div>
 
     <!-- Боковое меню -->
     <div id="side-menu" class="side-menu">
-        <div style="padding:30px 20px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
-                <h2 style="margin:0; color:#ffd700;">Menu</h2>
-                <button onclick="closeMenu()" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">×</button>
+        <div class="side-menu-content">
+            <div class="side-menu-header">
+                <h2>Menu</h2>
+                <button class="close-menu" onclick="closeMenu()">×</button>
             </div>
             
-            <div style="margin-bottom:30px;">
-                <div style="display:flex; align-items:center; gap:10px; padding:12px; background:rgba(255,255,255,0.05); border-radius:10px; margin-bottom:10px;">
-                    <div style="width:40px; height:40px; background:#2081e2; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold;">U</div>
-                    <div>
-                        <div id="user-address" style="font-size:12px; color:#8a939b;">Not connected</div>
-                        <div id="user-balance" style="font-size:14px; color:white;">0 TON</div>
-                    </div>
-                </div>
+            <div class="user-info">
+                <div class="user-avatar">👑</div>
+                <div id="user-address" class="user-address">Connect your wallet</div>
+                <div id="user-balance" class="user-balance">0 TON</div>
             </div>
             
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <a href="index.html" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
-                    🏠 Marketplace
+            <div class="menu-items">
+                <a href="index.html" class="menu-item">
+                    <i>🏠</i>
+                    <span>Marketplace</span>
                 </a>
                 
-                <a href="admin.html" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
-                    ⚙️ Admin Settings
+                <a href="admin.html" class="menu-item">
+                    <i>⚙️</i>
+                    <span>Admin Settings</span>
                 </a>
                 
-                <a href="my-nfts.html" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
-                    🖼️ My NFTs
+                <a href="my-nfts.html" class="menu-item">
+                    <i>🖼️</i>
+                    <span>My NFTs</span>
                 </a>
                 
-                <a href="#" onclick="toggleTheme()" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
-                    🌙 Toggle Theme
+                <a href="#" onclick="toggleTheme()" class="menu-item">
+                    <i>🌙</i>
+                    <span>Toggle Theme</span>
                 </a>
                 
-                <a href="#" onclick="clearCache()" style="display:block; padding:15px; background:rgba(255,255,255,0.05); border-radius:10px; color:white; text-decoration:none; transition:background 0.3s;">
-                    🗑️ Clear Cache
+                <a href="#" onclick="clearCache()" class="menu-item">
+                    <i>🗑️</i>
+                    <span>Clear Cache</span>
                 </a>
             </div>
             
-            <div style="margin-top:40px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.1);">
-                <div style="font-size:12px; color:#8a939b; text-align:center;">
-                    <p>Royal NFT Market v1.0</p>
-                    <p>Powered by TON • IPFS • Firebase</p>
-                </div>
+            <div class="menu-footer">
+                <p>Royal NFT Market v1.0</p>
+                <p>Powered by TON • IPFS • Firebase</p>
             </div>
         </div>
     </div>
@@ -224,7 +287,7 @@
         }
 
         function closeMenu() {
-            document.getElementById('side-menu').style.right = '-280px';
+            document.getElementById('side-menu').style.right = '-300px';
             setTimeout(() => {
                 document.getElementById('side-menu').style.display = 'none';
             }, 300);
@@ -280,6 +343,20 @@
         function hideLoader() {
             const loader = document.getElementById('global-loader');
             loader.style.display = 'none';
+        }
+
+        // ===== ФИЛЬТРАЦИЯ NFT =====
+        function filterNFTs(filterType) {
+            // Обновляем активные кнопки
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Обновляем сетку с учетом фильтра
+            if (window.applyFilter) {
+                window.applyFilter(filterType);
+            }
         }
 
         // ===== УПРАВЛЕНИЕ МЕНЮ =====
