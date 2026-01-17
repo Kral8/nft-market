@@ -7,6 +7,26 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.js"></script>
+    <style>
+        /* Гарантируем, что модалка будет видна */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 10000; 
+            left: 0; top: 0; 
+            width: 100%; height: 100%; 
+            background-color: rgba(0,0,0,0.8);
+        }
+        .modal-content {
+            background-color: #1c252f;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 85%;
+            max-width: 400px;
+            color: white;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -22,21 +42,39 @@
         </div>
     </div>
 
-    <button class="fab-button" onclick="window.openMintModal()">
+    <button class="fab-button" onclick="openMintModal()">
         <span>+ List NFT</span>
     </button>
 
-    <div id="mint-modal" class="modal" style="display:none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9);">
-        <div class="modal-content" style="background: #18202a; margin: 20% auto; padding: 20px; width: 80%; border-radius: 15px;">
-            <h3 style="color: white;">New NFT</h3>
-            <input type="text" id="nft-name" placeholder="Name" style="width:100%; margin-bottom:10px; padding:10px; border-radius:5px; border:none;">
-            <input type="number" id="nft-price" placeholder="Price (TON)" style="width:100%; margin-bottom:10px; padding:10px; border-radius:5px; border:none;">
-            <input type="file" id="nft-file" style="color:white; margin-bottom:10px;">
-            <button onclick="window.startMinting()" id="submit-mint" style="width:100%; background:#2081e2; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">Create</button>
-            <button onclick="window.closeMintModal()" style="width:100%; background:transparent; color:gray; border:none; margin-top:10px;">Cancel</button>
+    <div id="mint-modal" class="modal">
+        <div class="modal-content">
+            <h3>New NFT</h3>
+            <input type="text" id="nft-name" placeholder="Name" style="width:90%; padding:10px; margin-bottom:10px; border-radius:8px; border:none;">
+            <input type="number" id="nft-price" placeholder="Price (TON)" style="width:90%; padding:10px; margin-bottom:10px; border-radius:8px; border:none;">
+            <input type="file" id="nft-file" style="margin-bottom:15px; color:white;">
+            <button id="submit-mint" onclick="startMintingProcess()" style="width:100%; background:#2081e2; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold; cursor:pointer;">Create & List</button>
+            <button onclick="closeMintModal()" style="width:100%; background:transparent; color:gray; border:none; margin-top:10px; cursor:pointer;">Cancel</button>
         </div>
     </div>
 
-    <script type="module" src="script.js?v=final_fix_1"></script>
+    <script>
+        // Эти функции работают ГЛОБАЛЬНО и мгновенно
+        function openMintModal() {
+            document.getElementById('mint-modal').style.display = 'block';
+        }
+        function closeMintModal() {
+            document.getElementById('mint-modal').style.display = 'none';
+        }
+        function startMintingProcess() {
+            // Вызываем функцию из нашего модуля
+            if (window.runMinting) {
+                window.runMinting();
+            } else {
+                alert("Please wait, loading system...");
+            }
+        }
+    </script>
+
+    <script type="module" src="script.js?v=999"></script>
 </body>
 </html>
