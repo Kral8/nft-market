@@ -40,23 +40,36 @@ if (tg) {
 
 // ================== ФУНКЦИЯ ПОЛУЧЕНИЯ КЛЮЧЕЙ ==================
 async function loadSecureKeys() {
+    // Сначала пробуем получить из Telegram CloudStorage
     if (window.Telegram?.WebApp?.CloudStorage) {
-        const jwt = await Telegram.WebApp.CloudStorage.getItem('pinata_jwt');
-        if (jwt) {
-            PINATA_JWT = jwt;
-            console.log("Pinata JWT loaded from CloudStorage");
-        } else {
-            console.warn("Pinata JWT not found in CloudStorage");
+        try {
+            const jwt = await Telegram.WebApp.CloudStorage.getItem('pinata_jwt');
+            if (jwt && jwt !== 'undefined') {
+                PINATA_JWT = jwt;
+                console.log("Pinata JWT loaded from Telegram CloudStorage");
+                return true;
+            }
+        } catch (e) {
+            console.log("Telegram CloudStorage not available");
         }
     }
     
-    if (!PINATA_JWT && window.location.hostname === 'localhost') {
-        PINATA_JWT = prompt("Введите Pinata JWT для теста (только локально):");
+    // Если нет в Telegram, пробуем LocalStorage
+    try {
+        const jwt = localStorage.getItem('pinata_jwt');
+        if (jwt && jwt !== 'undefined') {
+            PINATA_JWT = jwt;
+            console.log("Pinata JWT loaded from LocalStorage");
+            return true;
+        }
+    } catch (e) {
+        console.log("LocalStorage not available");
     }
     
-    return !!PINATA_JWT;
+    // Если ничего не нашли
+    console.warn("Pinata JWT not found");
+    return false;
 }
-
 // ================== ЗАГРУЗКА NFT С РЫНКА ==================
 async function loadNFTs() {
     const grid = document.getElementById('nft-grid');
