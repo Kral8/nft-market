@@ -1,57 +1,147 @@
 body {
-    background: #0a0a0c;
-    color: #e0e0e0;
-    font-family: 'Segoe UI', sans-serif;
+    background: #0d0d12;
+    color: #ffffff;
+    font-family: 'Inter', sans-serif;
     margin: 0;
+    padding: 0;
     display: flex;
     justify-content: center;
 }
 
 #app {
-    max-width: 500px;
     width: 100%;
+    max-width: 450px;
     padding: 20px;
     text-align: center;
 }
 
-h1 {
-    color: #ffca28;
-    text-shadow: 0 0 15px rgba(255, 202, 40, 0.4);
-    font-size: 28px;
+#logo {
+    width: 120px;
+    margin-top: 10px;
+    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
 }
 
-/* Сетка товаров */
+h1 {
+    font-size: 24px;
+    color: #ffd700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+#ton-connect {
+    margin: 20px 0;
+}
+
 .nft-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 15px;
-    margin-top: 30px;
+    margin-top: 20px;
 }
 
 .nft-card {
-    background: #16161a;
-    border: 1px solid #333;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 15px;
     padding: 10px;
+    backdrop-filter: blur(5px);
     transition: 0.3s;
 }
 
 .nft-card:hover {
-    border-color: #ffca28;
-    transform: translateY(-5px);
+    border-color: #ffd700;
 }
 
 .nft-card img {
     width: 100%;
     border-radius: 10px;
+    aspect-ratio: 1/1;
+    object-fit: cover;
 }
 
-button {
-    background: linear-gradient(135deg, #ffca28, #ff8f00);
+.nft-card h3 {
+    font-size: 14px;
+    margin: 10px 0 5px;
+}
+
+.nft-card p {
+    color: #ffd700;
+    font-weight: bold;
+    margin: 0 0 10px;
+}
+
+.buy-btn {
+    background: white;
+    color: black;
     border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 8px;
+    width: 100%;
+    border-radius: 5px;
     font-weight: bold;
     cursor: pointer;
+}
+
+#mint-btn-main {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 350px;
+    padding: 15px;
+    background: linear-gradient(45deg, #ffd700, #ffa500);
+    border: none;
+    border-radius: 50px;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 5px 20px rgba(255, 165, 0, 0.4);
+    z-index: 10;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 100;
+}
+
+.modal-content {
+    background: #1a1a20;
+    margin: 15% auto;
+    padding: 30px;
+    width: 80%;
+    border-radius: 20px;
+    border: 1px solid #333;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    background: #000;
+    border: 1px solid #333;
+    color: white;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+#confirm-mint-btn {
+    width: 100%;
+    padding: 15px;
+    background: #ffd700;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #666;
+    margin-top: 15px;
     width: 100%;
 }
