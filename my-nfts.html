@@ -95,7 +95,6 @@
             grid.innerHTML = '<p style="text-align:center; grid-column:1/-1; padding:40px;"><div class="loader"></div><br>Loading your collection...</p>';
             
             try {
-                // Загружаем все NFT
                 const querySnapshot = await getDocs(collection(db, "nfts"));
                 
                 let totalNFTs = 0;
@@ -113,12 +112,10 @@
                     }
                 });
                 
-                // Обновляем статистику
                 document.getElementById('total-nfts').textContent = totalNFTs;
                 document.getElementById('listed-nfts').textContent = listedNFTs;
                 document.getElementById('total-value').textContent = totalValue.toFixed(2) + ' TON';
                 
-                // Отображаем NFT
                 displayNFTs(nfts);
                 
             } catch (error) {
@@ -178,28 +175,21 @@
         }
         
         function filterNFTs(filter) {
-            // Убираем активный класс у всех кнопок
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // Добавляем активный класс текущей кнопке
             event.target.classList.add('active');
-            
-            // Здесь будет фильтрация
             console.log("Filter by:", filter);
-            // Нужно перезагрузить NFT с фильтром
         }
         
         function editNFT(nftId) {
             alert("Edit NFT: " + nftId);
-            // Открыть форму редактирования
         }
         
         function delistNFT(nftId) {
             if (confirm("Remove this NFT from marketplace?")) {
                 alert("Delisting: " + nftId);
-                // Удалить NFT из Firestore
             }
         }
         
@@ -207,9 +197,7 @@
             window.history.back();
         }
         
-        // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
-            // Настройка Telegram Web App
             const tg = window.Telegram?.WebApp;
             if (tg) {
                 tg.expand();
@@ -217,7 +205,6 @@
                 tg.BackButton.onClick(goBack);
             }
             
-            // Следим за подключением кошелька
             tonConnectUI.onStatusChange((wallet) => {
                 if (wallet) {
                     currentUserAddress = wallet.account.address;
