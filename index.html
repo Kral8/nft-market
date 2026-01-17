@@ -382,8 +382,15 @@
                 tg.close();
             });
         }
-    </script>
-
-    <script type="module" src="script.js"></script>
-</body>
-</html>
+   <script>
+    // Автоматическое предложение подключить кошелек
+    setTimeout(() => {
+        const connectBtn = document.querySelector('#ton-connect-btn button');
+        if (connectBtn && connectBtn.textContent.includes('Connect')) {
+            // Показываем подсказку для подключения
+            if (window.showNotification) {
+                showNotification("Connect your TON wallet to buy and create NFTs", "info");
+            }
+        }
+    }, 3000);
+</script>
