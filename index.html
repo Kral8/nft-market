@@ -16,24 +16,27 @@
         </div>
     </nav>
 
-    <div class="nft-grid" id="nft-grid">
-        <p style="text-align:center; grid-column:1/-1;">Loading items...</p>
+    <div id="app">
+        <div class="nft-grid" id="nft-grid">
+            <p style="text-align:center; grid-column:1/-1; padding: 20px;">Searching for NFTs...</p>
+        </div>
     </div>
 
     <button class="fab-button" onclick="window.openMintModal()">
         <span>+ List NFT</span>
     </button>
 
-    <div id="mint-modal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <input type="text" id="nft-name" placeholder="Name">
-            <input type="number" id="nft-price" placeholder="Price">
-            <input type="file" id="nft-file">
-            <button onclick="window.startMinting()" id="submit-mint">Create</button>
-            <button onclick="window.closeMintModal()">Close</button>
+    <div id="mint-modal" class="modal" style="display:none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9);">
+        <div class="modal-content" style="background: #18202a; margin: 20% auto; padding: 20px; width: 80%; border-radius: 15px;">
+            <h3 style="color: white;">New NFT</h3>
+            <input type="text" id="nft-name" placeholder="Name" style="width:100%; margin-bottom:10px; padding:10px; border-radius:5px; border:none;">
+            <input type="number" id="nft-price" placeholder="Price (TON)" style="width:100%; margin-bottom:10px; padding:10px; border-radius:5px; border:none;">
+            <input type="file" id="nft-file" style="color:white; margin-bottom:10px;">
+            <button onclick="window.startMinting()" id="submit-mint" style="width:100%; background:#2081e2; color:white; border:none; padding:12px; border-radius:10px; font-weight:bold;">Create</button>
+            <button onclick="window.closeMintModal()" style="width:100%; background:transparent; color:gray; border:none; margin-top:10px;">Cancel</button>
         </div>
     </div>
 
-    <script type="module" src="script.js?v=99"></script>
+    <script type="module" src="script.js?v=final_fix_1"></script>
 </body>
 </html>
