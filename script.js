@@ -2,19 +2,21 @@ const WebApp = window.Telegram.WebApp;
 WebApp.ready();
 WebApp.expand();
 
-// ТВОЙ PINATA ТОКЕН
+// ТВОЙ КОШЕЛЕК ДЛЯ ПОЛУЧЕНИЯ ОПЛАТЫ
+const MY_TON_ADDRESS = "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98"; 
+
+// ТВОЙ PINATA JWT (ДЛЯ КАРТИНОК)
 const PINATA_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjYWMxZDM2Yy04MDVmLTQzYTQtYmQ5My1iNzhmNmM0NTI1MDAiLCJlbWFpbCI6InNhYnRpbThAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBpbl9wb2xpY3kiOnsicmVnaW9ucyI6W3siZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiRlJBMSJ9LHsiZGVzaXJlZFJlcGxpY2F0aW9uQ291bnQiOjEsImlkIjoiTllDMSJ9XSwidmVyc2lvbiI6MX0sIm1mYV9lbmFibGVkIjpmYWxzZSwic3RhdHVzIjoiQUNUSVZFIn0sImF1dGhlbnRpY2F0aW9uVHlwZSI6InNjb3BlZEtleSIsInNjb3BlZEtleUtleSI6IjBjNGVhZTZmZGZiYTVmYzM2OTZkIiwic2NvcGVkS2V5U2VjcmV0IjoiYjA0NmFiNjc5MTAyY2IzNGVjOGRjZDNmN2Q5N2Y2OWVhNTNmNDQ3MjUxMDI3NGRjYWU3MjJlYmI0YjAyOTU5MyIsImV4cCI6MTgwMDIwMjY0MH0.uC3hCpCcf2uuxBs3bY5u5d6KHNaGtngHufen-0HZnbw';
 
-// ФУНКЦИЯ ЗАГРУЗКИ КАРТОЧЕК С САЙТА
+// 1. ЗАГРУЗКА NFT С ВИТРИНЫ (ИЗ FIREBASE)
 async function loadNFTs() {
     const grid = document.getElementById('nft-display-area');
     if (!grid) return;
-    grid.innerHTML = '<p style="color: gold;">Loading Market...</p>'; 
+    grid.innerHTML = '<p style="color: gold; text-align: center; grid-column: 1/3;">Loading Market...</p>'; 
 
     try {
-        // Проверяем, готовы ли методы Firebase
         if (!window.fbMethods) {
-            setTimeout(loadNFTs, 500); // Если не готовы, ждем еще полсекунды
+            setTimeout(loadNFTs, 500);
             return;
         }
 
@@ -22,10 +24,10 @@ async function loadNFTs() {
         const q = query(collection(window.db, "nfts"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
 
-        grid.innerHTML = ''; // Чистим перед выводом
+        grid.innerHTML = ''; 
 
         if (querySnapshot.empty) {
-            grid.innerHTML = '<p>No NFTs found. Be the first to list!</p>';
+            grid.innerHTML = '<p style="grid-column: 1/3;">No NFTs found. Create one!</p>';
             return;
         }
 
@@ -37,20 +39,20 @@ async function loadNFTs() {
                 <img src="${nft.image}" alt="nft">
                 <h3>${nft.name}</h3>
                 <p>${nft.price} TON</p>
-                <button class="buy-btn" onclick="WebApp.showAlert('Purchase logic: Sending ${nft.price} TON to seller...')">Buy Now</button>
+                <button class="buy-btn" onclick="sendTransaction('${nft.price}', '${nft.name}')">Buy Now</button>
             `;
             grid.appendChild(card);
         });
     } catch (e) {
-        console.error("Firebase Load Error: ", e);
-        grid.innerHTML = '<p style="color: red;">Error loading data</p>';
+        console.error("Firebase Error: ", e);
+        grid.innerHTML = '<p style="color: red;">Error loading NFTs</p>';
     }
 }
 
-// Запускаем загрузку сразу
+// ЗАПУСК ЗАГРУЗКИ ПРИ СТАРТЕ
 loadNFTs();
 
-// ОТКРЫТИЕ И ЗАКРЫТИЕ МОДАЛКИ
+// 2. ОТКРЫТИЕ И ЗАКРЫТИЕ МОДАЛКИ МИНТИНГА
 document.getElementById('mint-btn-main').onclick = () => {
     document.getElementById('mint-modal').style.display = 'block';
 };
@@ -59,45 +61,67 @@ window.closeModal = function() {
     document.getElementById('mint-modal').style.display = 'none';
 }
 
-// ФУНКЦИЯ ЗАГРУЗКИ В PINATA
-async function uploadToIPFS(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${PINATA_JWT}` },
-        body: formData
-    });
-    const json = await res.json();
-    if (!json.IpfsHash) throw new Error("Pinata error");
-    return json.IpfsHash;
+// 3. ФУНКЦИЯ ОПЛАТЫ ЧЕРЕЗ TON CONNECT
+window.sendTransaction = async function(amount, nftName) {
+    if (!tonConnectUI.connected) {
+        WebApp.showAlert("Please connect your wallet first using the button at the top!");
+        return;
+    }
+
+    // Переводим цену в нанотоны
+    const nanoAmount = (parseFloat(amount) * 1000000000).toString();
+
+    const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 600, 
+        messages: [
+            {
+                address: MY_TON_ADDRESS, 
+                amount: nanoAmount,
+            }
+        ]
+    };
+
+    try {
+        WebApp.showConfirm(`Confirm purchase: ${nftName} for ${amount} TON?`, async (confirm) => {
+            if (confirm) {
+                await tonConnectUI.sendTransaction(transaction);
+                WebApp.showAlert("Transaction sent! Check your wallet.");
+            }
+        });
+    } catch (e) {
+        console.error(e);
+        WebApp.showAlert("Transaction failed or canceled.");
+    }
 }
 
-// ГЛАВНАЯ ФУНКЦИЯ СОЗДАНИЯ NFT
+// 4. СОЗДАНИЕ НОВОГО NFT (IPFS + FIREBASE)
 window.startMinting = async function() {
     const name = document.getElementById('nft-name').value;
     const price = document.getElementById('nft-price').value;
     const fileInput = document.getElementById('nft-file');
 
     if(!name || !price || !fileInput.files[0]) {
-        WebApp.showAlert("Please fill all fields, brother!");
+        WebApp.showAlert("Please fill all fields and select an image!");
         return;
     }
 
     const btn = document.getElementById('confirm-mint-btn');
-    const originalText = btn.innerText;
-    btn.innerText = "1. Uploading Image...";
+    btn.innerText = "Processing...";
     btn.disabled = true;
 
     try {
-        // 1. В Pinata
-        const hash = await uploadToIPFS(fileInput.files[0]);
-        const imgUrl = `https://gateway.pinata.cloud/ipfs/${hash}`;
-        
-        btn.innerText = "2. Saving to Database...";
+        // Загрузка в Pinata
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${PINATA_JWT}` },
+            body: formData
+        });
+        const data = await res.json();
+        const imgUrl = `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`;
 
-        // 2. В Firebase
+        // Сохранение в Firebase
         const { addDoc, collection } = window.fbMethods;
         await addDoc(collection(window.db, "nfts"), {
             name: name,
@@ -106,15 +130,15 @@ window.startMinting = async function() {
             createdAt: Date.now()
         });
 
-        WebApp.showAlert("Victory! NFT '"+name+"' is now live!");
+        WebApp.showAlert("Success! Your NFT is now live on the market.");
         closeModal();
-        loadNFTs(); // Перезагружаем витрину
+        loadNFTs(); 
 
     } catch (e) {
         console.error(e);
-        WebApp.showAlert("Error creating NFT. Check console.");
+        WebApp.showAlert("Error creating NFT. Try again.");
     } finally {
-        btn.innerText = originalText;
+        btn.innerText = "Create & Post";
         btn.disabled = false;
     }
 }
