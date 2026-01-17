@@ -22,8 +22,10 @@ const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
 });
 
 // ================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==================
-let PINATA_JWT = ""; // Будет загружено из CloudStorage
+let PINATA_JWT = "";
 let CURRENT_USER_ADDRESS = "";
+let ALL_NFTS = [];
+let CURRENT_FILTER = 'all';
 
 // ================== TELEGRAM WEB APP INIT ==================
 let tg = window.Telegram?.WebApp;
@@ -70,58 +72,155 @@ async function loadSecureKeys() {
     console.warn("Pinata JWT not found");
     return false;
 }
+
 // ================== ЗАГРУЗКА NFT С РЫНКА ==================
 async function loadNFTs() {
     const grid = document.getElementById('nft-grid');
     
-    grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px;"><div class="loader"></div><p style="color:gray; margin-top:10px;">Loading marketplace...</p></div>';
+    // Показываем загрузчик
+    grid.innerHTML = `
+        <div class="loading-state">
+            <div class="loader"></div>
+            <p>Loading NFTs from marketplace...</p>
+        </div>
+    `;
     
     try {
         const querySnapshot = await getDocs(collection(db, "nfts"));
-        grid.innerHTML = '';
         
-        if (querySnapshot.empty) {
-            grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:gray;"><p>🏜️ Marketplace is empty</p><p style="font-size:14px; margin-top:10px;">Be the first to list an NFT!</p></div>';
-            return;
-        }
+        // Сбрасываем массив NFT
+        ALL_NFTS = [];
         
-        const nfts = [];
         querySnapshot.forEach(doc => {
-            nfts.push({ id: doc.id, ...doc.data() });
+            ALL_NFTS.push({ id: doc.id, ...doc.data() });
         });
         
-        nfts.sort((a, b) => b.createdAt - a.createdAt);
+        // Обновляем статистику
+        updateStats(ALL_NFTS.length);
         
-        nfts.forEach(nft => {
-            const div = document.createElement('div');
-            div.className = 'nft-card';
-            
-            const ownerShort = nft.owner ? 
-                `${nft.owner.slice(0, 4)}...${nft.owner.slice(-4)}` : 
-                "Unknown";
-            
-            div.innerHTML = `
-                <img src="${nft.image}" alt="${nft.name}" 
-                     loading="lazy" 
-                     style="width:100%; height:180px; object-fit:cover; border-radius:10px 10px 0 0;">
-                <div style="padding:12px;">
-                    <h3 style="margin:0 0 5px 0; color:white; font-size:16px;">${nft.name}</h3>
-                    <div style="color:#ffd700; font-weight:bold; font-size:18px;">${parseFloat(nft.price).toFixed(2)} TON</div>
-                    <div style="color:#8a939b; font-size:12px; margin-top:5px;">Seller: ${ownerShort}</div>
-                </div>
-                <button onclick="buyNFT('${nft.id}', '${nft.price}', '${nft.owner}')" 
-                        style="width:100%; background:#2081e2; color:white; border:none; padding:12px; border-radius:0 0 10px 10px; font-weight:bold; cursor:pointer; font-size:14px;">
-                    Buy Now
-                </button>
-            `;
-            
-            grid.appendChild(div);
-        });
+        // Применяем текущий фильтр
+        applyFilter(CURRENT_FILTER);
         
     } catch (error) {
         console.error("Error loading NFTs:", error);
-        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px; color:#ff4757;"><p>❌ Error loading NFTs</p><p style="font-size:14px;">' + error.message + '</p></div>';
+        
+        // Сообщение об ошибке
+        grid.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon" style="color:#ff4757;">❌</div>
+                <h3>Error Loading NFTs</h3>
+                <p>Failed to load marketplace. Please check your connection.</p>
+                <button class="empty-btn" onclick="loadNFTs()" style="background:#ff4757;">Try Again</button>
+            </div>
+        `;
     }
+}
+
+// ================== ФИЛЬТРАЦИЯ NFT ==================
+window.applyFilter = function(filterType) {
+    CURRENT_FILTER = filterType;
+    
+    if (ALL_NFTS.length === 0) {
+        displayEmptyState();
+        return;
+    }
+    
+    let filteredNFTs = [...ALL_NFTS];
+    
+    // Применяем фильтры
+    switch(filterType) {
+        case 'newest':
+            filteredNFTs.sort((a, b) => b.createdAt - a.createdAt);
+            break;
+        case 'lowest':
+            filteredNFTs.sort((a, b) => parseFloat(a.price || 0) - parseFloat(b.price || 0));
+            break;
+        case 'highest':
+            filteredNFTs.sort((a, b) => parseFloat(b.price || 0) - parseFloat(a.price || 0));
+            break;
+        default:
+            // 'all' - оставляем как есть или сортируем по дате
+            filteredNFTs.sort((a, b) => b.createdAt - a.createdAt);
+    }
+    
+    // Отображаем отфильтрованные NFT
+    displayNFTs(filteredNFTs);
+}
+
+// ================== ОТОБРАЖЕНИЕ NFT ==================
+function displayNFTs(nfts) {
+    const grid = document.getElementById('nft-grid');
+    
+    if (nfts.length === 0) {
+        displayEmptyState();
+        return;
+    }
+    
+    grid.innerHTML = '';
+    
+    nfts.forEach(nft => {
+        const div = document.createElement('div');
+        div.className = 'nft-card';
+        
+        // Форматируем адрес владельца
+        const ownerShort = nft.owner ? 
+            `${nft.owner.slice(0, 6)}...${nft.owner.slice(-4)}` : 
+            "Unknown";
+        
+        // Форматируем цену
+        const price = parseFloat(nft.price || 0).toFixed(2);
+        
+        // Проверяем URL изображения
+        const imageUrl = nft.image && nft.image.startsWith('http') ? nft.image : 
+            'https://via.placeholder.com/300x300/18202a/8a939b?text=Royal+NFT';
+        
+        div.innerHTML = `
+            <div class="nft-image">
+                <img src="${imageUrl}" alt="${nft.name}" 
+                     loading="lazy" style="width:100%; height:100%; object-fit:cover;"
+                     onerror="this.onerror=null; this.src='https://via.placeholder.com/300x300/18202a/8a939b?text=Royal+NFT';">
+            </div>
+            <div class="nft-info">
+                <h3 class="nft-title">${nft.name || 'Unnamed NFT'}</h3>
+                <div class="nft-price">${price} TON</div>
+                <p class="nft-owner">By: <span>${ownerShort}</span></p>
+            </div>
+            <div class="nft-actions">
+                <button class="buy-btn" onclick="buyNFT('${nft.id}', '${nft.price}', '${nft.owner}')">
+                    Buy Now
+                </button>
+            </div>
+        `;
+        
+        grid.appendChild(div);
+    });
+}
+
+// ================== ПУСТОЕ СОСТОЯНИЕ ==================
+function displayEmptyState() {
+    const grid = document.getElementById('nft-grid');
+    
+    grid.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-icon">🖼️</div>
+            <h3>Marketplace is Empty</h3>
+            <p>Be the first to list an NFT! Create unique digital assets and start trading.</p>
+            <button class="empty-btn" onclick="openMintModal()">Create First NFT</button>
+        </div>
+    `;
+}
+
+// ================== ОБНОВЛЕНИЕ СТАТИСТИКИ ==================
+function updateStats(count) {
+    document.getElementById('total-nfts').textContent = count;
+    
+    // Считаем уникальных продавцов
+    const uniqueSellers = new Set(ALL_NFTS.map(nft => nft.owner)).size;
+    document.getElementById('active-sellers').textContent = uniqueSellers;
+    
+    // Считаем общий объем
+    const totalVolume = ALL_NFTS.reduce((sum, nft) => sum + parseFloat(nft.price || 0), 0);
+    document.getElementById('total-volume').textContent = totalVolume.toFixed(1);
 }
 
 // ================== ПОКУПКА NFT ==================
@@ -143,7 +242,7 @@ window.buyNFT = async function(nftId, price, sellerAddress) {
         return;
     }
     
-    const confirmBuy = confirm(`Buy "${nftId}" for ${price} TON?\n\nThis will open your wallet to confirm the transaction.`);
+    const confirmBuy = confirm(`Buy this NFT for ${price} TON?\n\nThis will open your wallet to confirm the transaction.`);
     if (!confirmBuy) return;
     
     const transaction = {
@@ -157,14 +256,24 @@ window.buyNFT = async function(nftId, price, sellerAddress) {
     };
     
     try {
+        if (window.showLoader) showLoader("Processing transaction...");
+        
         const result = await tonConnectUI.sendTransaction(transaction);
         
-        alert(`✅ Purchase successful!\nTransaction: ${result.boc.slice(0, 20)}...`);
+        if (window.hideLoader) hideLoader();
+        if (window.showNotification) {
+            showNotification(`✅ Purchase successful!`, 'success');
+        }
         
-        loadNFTs();
+        alert(`✅ Purchase successful!\nTransaction completed.`);
+        
+        // Перезагружаем список NFT
+        await loadNFTs();
         
     } catch (error) {
         console.error("Transaction error:", error);
+        
+        if (window.hideLoader) hideLoader();
         
         if (error.message?.includes("cancel") || error.message?.includes("Cancelled")) {
             alert("❌ Transaction cancelled");
@@ -218,6 +327,8 @@ window.runMinting = async function() {
     mintButton.innerText = "⏳ Uploading...";
     mintButton.disabled = true;
     
+    if (window.showLoader) showLoader("Creating NFT...");
+    
     try {
         if (!PINATA_JWT) {
             await loadSecureKeys();
@@ -227,8 +338,7 @@ window.runMinting = async function() {
             throw new Error("Pinata JWT not configured. Please set it in Admin Settings.");
         }
         
-        mintButton.innerText = "📤 Uploading to IPFS...";
-        
+        // Загружаем изображение на IPFS
         const formData = new FormData();
         formData.append('file', file);
         
@@ -250,8 +360,7 @@ window.runMinting = async function() {
         
         console.log("✅ Image uploaded to IPFS:", imageUrl);
         
-        mintButton.innerText = "💾 Saving to marketplace...";
-        
+        // Сохраняем данные в Firestore
         const nftData = {
             name: name,
             price: parseFloat(price).toFixed(2),
@@ -267,18 +376,26 @@ window.runMinting = async function() {
         
         console.log("✅ NFT listed with ID:", docRef.id);
         
+        if (window.hideLoader) hideLoader();
+        if (window.showNotification) {
+            showNotification(`🎉 NFT "${name}" listed successfully!`, 'success');
+        }
+        
         alert(`🎉 NFT "${name}" successfully listed!\n\nPrice: ${price} TON\nView it in the marketplace.`);
         
+        // Закрываем модалку и очищаем форму
         closeMintModal();
-        
         document.getElementById('nft-name').value = '';
         document.getElementById('nft-price').value = '';
         fileInput.value = '';
         
+        // Обновляем список NFT
         await loadNFTs();
         
     } catch (error) {
         console.error("❌ Minting error:", error);
+        
+        if (window.hideLoader) hideLoader();
         
         let errorMessage = "Failed to create NFT: ";
         if (error.message.includes("JWT")) {
@@ -298,17 +415,41 @@ window.runMinting = async function() {
     }
 };
 
+// ================== ОБНОВЛЕНИЕ ИНФОРМАЦИИ ПОЛЬЗОВАТЕЛЯ ==================
+function updateUserInfo() {
+    if (CURRENT_USER_ADDRESS) {
+        const userAddressEl = document.getElementById('user-address');
+        const userBalanceEl = document.getElementById('user-balance');
+        
+        if (userAddressEl) {
+            userAddressEl.textContent = `${CURRENT_USER_ADDRESS.slice(0, 6)}...${CURRENT_USER_ADDRESS.slice(-4)}`;
+        }
+        
+        if (userBalanceEl) {
+            // Здесь можно добавить получение баланса кошелька
+            userBalanceEl.textContent = "0 TON"; // Заглушка
+        }
+    }
+}
+
 // ================== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ==================
 async function initApp() {
     console.log("🚀 Initializing Royal NFT Market...");
     
+    // Загружаем безопасные ключи
     await loadSecureKeys();
+    
+    // Загружаем NFT
     await loadNFTs();
     
+    // Настраиваем слушатели для TON Connect
     tonConnectUI.onStatusChange((walletInfo) => {
         if (walletInfo) {
             CURRENT_USER_ADDRESS = walletInfo.account.address;
             console.log("✅ Wallet connected:", CURRENT_USER_ADDRESS);
+            
+            // Обновляем информацию в меню
+            updateUserInfo();
             
             if (window.showNotification) {
                 showNotification("Wallet connected!", "success");
@@ -316,9 +457,8 @@ async function initApp() {
         } else {
             CURRENT_USER_ADDRESS = "";
             console.log("🔒 Wallet disconnected");
+            updateUserInfo();
         }
-        
-        loadNFTs();
     });
     
     console.log("✅ App initialized successfully");
