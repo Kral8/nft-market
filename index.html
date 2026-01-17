@@ -12,7 +12,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Твой конфиг
         const firebaseConfig = {
             apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
             authDomain: "royal-nft.firebaseapp.com",
@@ -22,12 +21,8 @@
             appId: "1:616712040035:web:59e449b2215e4126951256"
         };
 
-        // Инициализация
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // Делаем базу доступной для нашего script.js
-        window.db = db;
+        window.db = getFirestore(app);
         window.fbMethods = { collection, addDoc, getDocs, query, orderBy };
     </script>
 </head>
@@ -36,11 +31,10 @@
         <header>
             <img src="logo.png" id="logo" alt="Royal Logo">
             <h1>Royal NFT Market</h1>
-            <div id="ton-connect"></div>
+            <div id="ton-connect-btn" style="display: flex; justify-content: center; margin-bottom: 20px;"></div>
         </header>
 
-        <div class="nft-grid" id="nft-display-area">
-            </div>
+        <div class="nft-grid" id="nft-display-area"></div>
 
         <button id="mint-btn-main">+ List Your NFT</button>
     </div>
@@ -56,12 +50,12 @@
         </div>
     </div>
 
-    <script src="script.js"></script>
     <script>
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
-            buttonRootId: 'ton-connect'
+            buttonRootId: 'ton-connect-btn'
         });
     </script>
+    <script src="script.js"></script>
 </body>
 </html>
