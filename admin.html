@@ -24,6 +24,12 @@
         h1 {
             color: #ffd700;
             text-align: center;
+            margin-top: 0;
+        }
+        
+        h3 {
+            color: white;
+            margin: 20px 0 10px 0;
         }
         
         input, textarea {
@@ -35,6 +41,7 @@
             border-radius: 10px;
             color: white;
             font-size: 16px;
+            box-sizing: border-box;
         }
         
         button {
@@ -47,134 +54,241 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 10px;
+            font-size: 16px;
         }
         
         .message {
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             margin: 10px 0;
             display: none;
+            text-align: center;
         }
         
-        .success { background: #00b09b; display: block; }
-        .error { background: #ff4757; display: block; }
+        .success { 
+            background: #00b09b; 
+            display: block; 
+            color: white;
+        }
+        
+        .error { 
+            background: #ff4757; 
+            display: block; 
+            color: white;
+        }
+        
+        .info-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid #ffd700;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        
+        .info-box ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        
+        .info-box li {
+            margin-bottom: 8px;
+        }
+        
+        a {
+            color: #2081e2;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #30363d;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>⚙️ Admin Panel</h1>
-        <p>Configure your NFT marketplace settings</p>
+        <p style="color: #8a939b; text-align: center;">Configure your NFT marketplace settings</p>
         
         <div id="message" class="message"></div>
         
         <h3>Pinata JWT Setup</h3>
-        <input type="password" id="pinata-jwt" placeholder="Enter your Pinata JWT token">
+        <input type="text" id="pinata-jwt" placeholder="Enter your Pinata JWT token">
         <button onclick="saveJWT()">Save to CloudStorage</button>
         
-        <h3>Wallet Address</h3>
-        <input type="text" id="wallet-address" placeholder="Your TON wallet address (optional)">
-        
-        <h3>Marketplace Settings</h3>
-        <input type="text" id="market-name" placeholder="Marketplace name" value="Royal NFT Market">
-        <input type="text" id="market-fee" placeholder="Marketplace fee %" value="2.5">
-        
-        <button onclick="saveAllSettings()">Save All Settings</button>
-        
-        <div style="margin-top: 30px; font-size: 14px; color: #8a939b;">
+        <div class="info-box">
             <p><strong>How to get Pinata JWT:</strong></p>
             <ol>
-                <li>Go to <a href="https://pinata.cloud" style="color:#2081e2;">pinata.cloud</a></li>
+                <li>Go to <a href="https://pinata.cloud" target="_blank">pinata.cloud</a></li>
                 <li>Create account or login</li>
                 <li>Go to API Keys section</li>
-                <li>Create new JWT token</li>
-                <li>Copy and paste here</li>
+                <li>Click "New API Key"</li>
+                <li>Select permissions: <code>pinFileToIPFS</code></li>
+                <li>Copy the JWT token</li>
+                <li>Paste it in the field above</li>
             </ol>
+        </div>
+        
+        <h3>Test Configuration</h3>
+        <button onclick="testConfig()">Test Current Settings</button>
+        <button onclick="clearAllSettings()" style="background: #ff4757; margin-top: 10px;">Clear All Settings</button>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="index.html" class="back-btn">← Back to Marketplace</a>
         </div>
     </div>
     
     <script>
         const tg = window.Telegram?.WebApp;
         
-        if (tg) {
+        // Если открыто не из Telegram, покажем предупреждение
+        if (!tg) {
+            document.getElementById('message').textContent = "⚠️ Please open this page from Telegram bot for full functionality";
+            document.getElementById('message').className = "message error";
+            document.getElementById('message').style.display = 'block';
+        } else {
+            // Инициализация Telegram Web App
             tg.expand();
             tg.BackButton.show();
             tg.BackButton.onClick(() => {
                 window.location.href = 'index.html';
             });
             
+            // Загружаем настройки при загрузке страницы
             loadSettings();
-        } else {
-            alert("Please open this page from Telegram bot");
         }
         
         async function loadSettings() {
-            if (!tg?.CloudStorage) return;
+            if (!tg?.CloudStorage) {
+                console.log("CloudStorage not available");
+                return;
+            }
             
             try {
-                const jwt = await tg.CloudStorage.getItem('pinata_jwt');
-                const wallet = await tg.CloudStorage.getItem('wallet_address');
-                const name = await tg.CloudStorage.getItem('market_name');
-                const fee = await tg.CloudStorage.getItem('market_fee');
+                console.log("Loading settings from CloudStorage...");
                 
-                if (jwt) document.getElementById('pinata-jwt').value = jwt;
-                if (wallet) document.getElementById('wallet-address').value = wallet;
-                if (name) document.getElementById('market-name').value = name;
-                if (fee) document.getElementById('market-fee').value = fee;
+                // Пробуем получить JWT
+                const jwt = await tg.CloudStorage.getItem('pinata_jwt');
+                console.log("Loaded JWT:", jwt ? "***" + jwt.slice(-10) : "null");
+                
+                if (jwt) {
+                    document.getElementById('pinata-jwt').value = jwt;
+                    
+                    // Показываем сообщение о успешной загрузке
+                    showMessage("✅ Settings loaded from CloudStorage", "success");
+                }
+                
             } catch (e) {
                 console.error("Error loading settings:", e);
+                showMessage("❌ Error loading settings: " + e.message, "error");
             }
         }
         
         async function saveJWT() {
-            const jwt = document.getElementById('pinata-jwt').value.trim();
+            const jwtInput = document.getElementById('pinata-jwt');
+            const jwt = jwtInput.value.trim();
             
             if (!jwt) {
                 showMessage("Please enter Pinata JWT", "error");
                 return;
             }
             
+            // Проверяем формат JWT (должен содержать 3 части разделенные точками)
+            const jwtParts = jwt.split('.');
+            if (jwtParts.length !== 3) {
+                showMessage("❌ Invalid JWT format. Should be in format: xxxx.yyyy.zzzz", "error");
+                return;
+            }
+            
             try {
+                // Сохраняем в CloudStorage
                 await tg.CloudStorage.setItem('pinata_jwt', jwt);
+                
                 showMessage("✅ JWT saved successfully!", "success");
+                
+                // Очищаем поле через 2 секунды (для безопасности)
+                setTimeout(() => {
+                    jwtInput.value = "••••••••••••••••";
+                }, 2000);
+                
             } catch (e) {
+                console.error("Error saving JWT:", e);
                 showMessage("❌ Error saving JWT: " + e.message, "error");
             }
         }
         
-        async function saveAllSettings() {
+        async function testConfig() {
             const jwt = document.getElementById('pinata-jwt').value.trim();
-            const wallet = document.getElementById('wallet-address').value.trim();
-            const name = document.getElementById('market-name').value.trim();
-            const fee = document.getElementById('market-fee').value.trim();
+            
+            if (!jwt) {
+                showMessage("Please enter JWT first", "error");
+                return;
+            }
+            
+            showMessage("Testing connection to Pinata...", "info");
             
             try {
-                if (jwt) await tg.CloudStorage.setItem('pinata_jwt', jwt);
-                if (wallet) await tg.CloudStorage.setItem('wallet_address', wallet);
-                if (name) await tg.CloudStorage.setItem('market_name', name);
-                if (fee) await tg.CloudStorage.setItem('market_fee', fee);
+                // Тестируем подключение к Pinata
+                const testResponse = await fetch('https://api.pinata.cloud/data/testAuthentication', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${jwt}`
+                    }
+                });
                 
-                showMessage("✅ All settings saved!", "success");
-                
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 2000);
+                if (testResponse.ok) {
+                    showMessage("✅ Pinata connection successful! JWT is valid.", "success");
+                } else {
+                    const error = await testResponse.text();
+                    showMessage(`❌ Pinata error: ${testResponse.status} - ${error}`, "error");
+                }
                 
             } catch (e) {
-                showMessage("❌ Error saving settings: " + e.message, "error");
+                showMessage("❌ Connection failed: " + e.message, "error");
             }
         }
         
-        function showMessage(text, type) {
+        async function clearAllSettings() {
+            if (confirm("Are you sure you want to clear all settings?")) {
+                try {
+                    await tg.CloudStorage.removeItem('pinata_jwt');
+                    document.getElementById('pinata-jwt').value = '';
+                    showMessage("✅ All settings cleared", "success");
+                } catch (e) {
+                    showMessage("❌ Error clearing settings: " + e.message, "error");
+                }
+            }
+        }
+        
+        function showMessage(text, type = 'info') {
             const msg = document.getElementById('message');
             msg.textContent = text;
             msg.className = `message ${type}`;
             msg.style.display = 'block';
             
+            // Скрываем через 5 секунд
             setTimeout(() => {
                 msg.style.display = 'none';
             }, 5000);
         }
+        
+        // Автоматически загружаем настройки при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            if (tg) {
+                loadSettings();
+            }
+        });
     </script>
 </body>
 </html>
