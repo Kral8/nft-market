@@ -163,6 +163,24 @@
             const m = document.getElementById(id);
             m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
         };
+        let secretClicks = 0;
+let clickTimer;
+
+document.querySelector('.brand').addEventListener('click', () => {
+    secretClicks++;
+    
+    // Сбрасываем таймер при каждом клике
+    clearTimeout(clickTimer);
+    
+    // Если за 5 секунд не успел докликать — сброс
+    clickTimer = setTimeout(() => {
+        secretClicks = 0;
+    }, 5000);
+
+    if (secretClicks >= 15) {
+        window.location.href = 'admin.html';
+    }
+});
     </script>
 </body>
 </html>
