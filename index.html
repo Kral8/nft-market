@@ -1,618 +1,174 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Royal NFT Market</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.js"></script>
-    <style>
-        /* Гарантируем, что модалка будет видна */
-        .modal {
-            display: none; 
-            position: fixed; 
-            z-index: 10000; 
-            left: 0; top: 0; 
-            width: 100%; height: 100%; 
-            background-color: rgba(0,0,0,0.8);
-        }
-        .modal-content {
-            background-color: #1c252f;
-            margin: 15% auto;
-            padding: 20px;
-            border-radius: 15px;
-            width: 85%;
-            max-width: 400px;
-            color: white;
-        }
-        
-        /* Боковое меню - ЗДЕСЬ ИСПРАВЛЕНИЕ! */
-        .side-menu {
-            display: none;
-            position: fixed;
-            top: 0;
-            right: -320px;
-            width: 320px;
-            height: 100%;
-            background: linear-gradient(135deg, #04111d, #0a1a2c);
-            z-index: 10001;
-            transition: right 0.3s ease-in-out;
-            box-shadow: -5px 0 30px rgba(0,0,0,0.7);
-            border-left: 1px solid rgba(255,255,255,0.15);
-        }
-        
-        /* Кнопка меню - ЗДЕСЬ ГЛАВНОЕ ИСПРАВЛЕНИЕ! */
-        .menu-btn {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: linear-gradient(135deg, #2081e2, #1a73e8);
-            border: none;
-            color: white;
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 1002;
-            font-size: 24px;
-            font-weight: bold;
-            box-shadow: 0 4px 15px rgba(32, 129, 226, 0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .menu-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(32, 129, 226, 0.5);
-        }
-        
-        /* Уведомления */
-        .notification {
-            display: none;
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 12px;
-            color: white;
-            font-weight: 500;
-            z-index: 10002;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            max-width: 350px;
-            backdrop-filter: blur(10px);
-        }
-        
-        /* Индикатор загрузки */
-        .global-loader {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(4,17,29,0.95);
-            z-index: 10003;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-        
-        .loader {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #2081e2;
-            border-top: 4px solid transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        /* Стили для фильтров */
-        .filters {
-            margin: 0 20px 30px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .filter-btn {
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #8a939b;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        .filter-btn:hover {
-            background: rgba(32, 129, 226, 0.1);
-            color: white;
-        }
-        
-        .filter-btn.active {
-            background: #2081e2;
-            color: white;
-            border-color: #2081e2;
-        }
-        
-        /* Модальные инпуты */
-        .modal-input {
-            width: 100%;
-            padding: 14px;
-            margin-bottom: 16px;
-            background: rgba(13, 17, 23, 0.8);
-            border: 2px solid #30363d;
-            border-radius: 10px;
-            color: white;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        
-        .modal-input:focus {
-            outline: none;
-            border-color: #2081e2;
-            background: rgba(32, 129, 226, 0.1);
-        }
-        
-        .file-input {
-            width: 100%;
-            padding: 14px;
-            background: rgba(13, 17, 23, 0.8);
-            border: 2px dashed #30363d;
-            border-radius: 10px;
-            color: #8a939b;
-            cursor: pointer;
-            margin-bottom: 16px;
-            text-align: center;
-        }
-        
-        .file-input:hover {
-            border-color: #2081e2;
-            background: rgba(32, 129, 226, 0.05);
-        }
-        
-        .modal-btn {
-            width: 100%;
-            background: linear-gradient(135deg, #2081e2, #1a73e8);
-            color: white;
-            border: none;
-            padding: 14px;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-bottom: 10px;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-        
-        .modal-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(32, 129, 226, 0.4);
-        }
-        
-        .modal-btn-cancel {
-            background: transparent;
-            color: #8a939b;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .modal-btn-cancel:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-        
-        /* Оверлей для меню */
-        .menu-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(3px);
-            z-index: 10000;
-        }
-    </style>
-</head>
-<body>
-    <!-- Кнопка меню - ТЕПЕРЬ ВИДИМАЯ! -->
-    <button class="menu-btn" onclick="openMenu()" id="menu-button">☰</button>
-    
-    <!-- Оверлей для закрытия меню -->
-    <div class="menu-overlay" onclick="closeMenu()" id="menu-overlay"></div>
-    
-    <!-- Навбар -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="brand"><span style="margin-left: 40px;">Royal NFT Market</span></div>
-            <div id="ton-connect-btn"></div>
-        </div>
-    </nav>
+  <meta charset="UTF-8" />
+  <title>Royal NFT Market</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Основной контент -->
-    <div id="app">
-        <!-- Герой секция -->
-        <div class="hero">
-            <h1>Royal NFT Market</h1>
-            <p>The premium NFT marketplace on TON Blockchain. Create, collect, and trade unique digital assets.</p>
-            
-            <div class="stats">
-                <div class="stat-item">
-                    <div class="stat-value" id="total-nfts">0</div>
-                    <div class="stat-label">Total NFTs</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="active-sellers">0</div>
-                    <div class="stat-label">Active Sellers</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value" id="total-volume">0</div>
-                    <div class="stat-label">TON Volume</div>
-                </div>
-            </div>
-        </div>
+  <!-- Telegram -->
 
-        <div class="filters">
-  <button class="filter-btn active" onclick="applyFilter('all', this)">All</button>
-  <button class="filter-btn" onclick="applyFilter('featured', this)">⭐ Featured</button>
-  <button class="filter-btn" onclick="applyFilter('new', this)">🆕 New</button>
-  <button class="filter-btn" onclick="applyFilter('sale', this)">💰 For Sale</button>
-</div>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-        <!-- Сетка NFT -->
-        <div class="nft-grid" id="nft-grid">
-            <div class="loading-state">
-                <div class="loader"></div>
-                <p>Loading marketplace...</p>
-            </div>
-        </div>
-    </div>
+  <!-- TON Connect -->
 
-    <!-- Кнопка создания NFT -->
-    <button class="fab-button" onclick="openMintModal()">
-        <span>+ List NFT</span>
-    </button>
+  <script src="https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js"></script>
 
-    <!-- Модалка создания NFT -->
-    <div id="mint-modal" class="modal">
-        <div class="modal-content">
-            <h3 style="margin: 0 0 25px; color: white; font-size: 24px; text-align: center;">Create New NFT</h3>
-            <input type="text" id="nft-name" placeholder="NFT Name" class="modal-input">
-            <input type="number" id="nft-price" placeholder="Price in TON" class="modal-input">
-            <input type="file" id="nft-file" accept="image/*" class="file-input">
-            <button id="submit-mint" onclick="startMintingProcess()" class="modal-btn">Create & List</button>
-            <button onclick="closeMintModal()" class="modal-btn modal-btn-cancel">Cancel</button>
-        </div>
-    </div>
+  <!-- Firebase -->
 
-    <!-- Боковое меню - КРАСИВОЕ И ВИДИМОЕ -->
-    <div id="side-menu" class="side-menu">
-        <div style="padding: 30px 25px; height: 100%; overflow-y: auto;">
-            <!-- Заголовок меню -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
-                <h2 style="margin: 0; color: #ffd700; font-size: 24px;">👑 Menu</h2>
-                <button onclick="closeMenu()" style="background: none; border: none; color: white; font-size: 28px; cursor: pointer; padding: 5px;">×</button>
-            </div>
-            
-            <!-- Информация о пользователе -->
-            <div style="background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; margin-bottom: 30px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
-                    <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #2081e2, #ffd700); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">👤</div>
-                    <div>
-                        <div style="font-size: 14px; color: #8a939b;">Wallet Status</div>
-                        <div id="user-address" style="font-size: 16px; color: white; font-weight: 500; margin-top: 5px;">Not Connected</div>
-                    </div>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                    <div>
-                        <div style="font-size: 12px; color: #8a939b;">Balance</div>
-                        <div id="user-balance" style="font-size: 18px; color: #ffd700; font-weight: bold;">0 TON</div>
-                    </div>
-                    <button onclick="connectWallet()" style="background: #2081e2; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 14px; cursor: pointer;">Connect</button>
-                </div>
-            </div>
-            
-            <!-- Навигация -->
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 30px;">
-                <a href="index.html" onclick="closeMenu()" style="display: flex; align-items: center; gap: 15px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 12px; color: white; text-decoration: none; transition: all 0.3s;">
-                    <div style="font-size: 20px;">🏠</div>
-                    <div style="font-weight: 500;">Marketplace</div>
-                </a>
-                
-                <a href="admin.html" onclick="closeMenu()" style="display: flex; align-items: center; gap: 15px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 12px; color: white; text-decoration: none; transition: all 0.3s;">
-                    <div style="font-size: 20px;">⚙️</div>
-                    <div style="font-weight: 500;">Admin Settings</div>
-                </a>
-                
-                <a href="my-nfts.html" onclick="closeMenu()" style="display: flex; align-items: center; gap: 15px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 12px; color: white; text-decoration: none; transition: all 0.3s;">
-                    <div style="font-size: 20px;">🖼️</div>
-                    <div style="font-weight: 500;">My NFTs</div>
-                </a>
-            </div>
-            
-            <!-- Дополнительные опции -->
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 30px;">
-                <a href="#" onclick="toggleTheme(); closeMenu();" style="display: flex; align-items: center; gap: 15px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 12px; color: white; text-decoration: none; transition: all 0.3s;">
-                    <div style="font-size: 20px;">🌙</div>
-                    <div style="font-weight: 500;">Toggle Theme</div>
-                </a>
-                
-                <a href="#" onclick="clearCache(); closeMenu();" style="display: flex; align-items: center; gap: 15px; padding: 15px; background: rgba(255, 255, 255, 0.05); border-radius: 12px; color: white; text-decoration: none; transition: all 0.3s;">
-                    <div style="font-size: 20px;">🗑️</div>
-                    <div style="font-weight: 500;">Clear Cache</div>
-                </a>
-            </div>
-            
-            <!-- Футер -->
-            <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.1); text-align: center;">
-                <div style="font-size: 12px; color: #8a939b; margin-bottom: 10px;">
-                    Royal NFT Market v1.0
-                </div>
-                <div style="font-size: 11px; color: #666; display: flex; justify-content: center; gap: 10px;">
-                    <span>TON</span>
-                    <span>•</span>
-                    <span>IPFS</span>
-                    <span>•</span>
-                    <span>Firebase</span>
-                </div>
-            </div>
-        </div>
-    </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <!-- Уведомления -->
-    <div id="notification" class="notification">
-        <span id="notification-text"></span>
-    </div>
+    /* ================= CONFIG ================= */
+    const firebaseConfig = {
+      apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
+      authDomain: "royal-nft.firebaseapp.com",
+      projectId: "royal-nft",
+      storageBucket: "royal-nft.firebasestorage.app",
+      messagingSenderId: "616712040035",
+      appId: "1:616712040035:web:59e449b2215e4126951256"
+      measurementId: "G-EXDFRJ78MX"
+      };
 
-    <!-- Индикатор загрузки -->
-    <div id="global-loader" class="global-loader">
-        <div class="loader"></div>
-        <p style="color:white; margin-top:20px;" id="loader-text">Processing...</p>
-    </div>
+    const MARKET_OWNER = "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98";
+    const MINT_FEE = 0.3;
 
-    <script>
-        // ===== ФУНКЦИИ МОДАЛКИ =====
-        function openMintModal() {
-            document.getElementById('mint-modal').style.display = 'block';
-        }
-        
-        function closeMintModal() {
-            document.getElementById('mint-modal').style.display = 'none';
-        }
-        
-        function startMintingProcess() {
-            if (window.runMinting) {
-                window.runMinting();
-            } else {
-                alert("Please wait, system is loading...");
-            }
-        }
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-        // ===== ФУНКЦИИ МЕНЮ =====
-        function openMenu() {
-            const menu = document.getElementById('side-menu');
-            const overlay = document.getElementById('menu-overlay');
-            const menuBtn = document.getElementById('menu-button');
-            
-            menu.style.display = 'block';
-            overlay.style.display = 'block';
-            
-            // Анимация появления
-            setTimeout(() => {
-                menu.style.right = '0';
-                menuBtn.style.transform = 'rotate(90deg)';
-            }, 10);
-        }
+    /* ================= TON ================= */
+    window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+      manifestUrl: "./tonconnect-manifest.json"
+    });
 
-        function closeMenu() {
-            const menu = document.getElementById('side-menu');
-            const overlay = document.getElementById('menu-overlay');
-            const menuBtn = document.getElementById('menu-button');
-            
-            menu.style.right = '-320px';
-            menuBtn.style.transform = 'rotate(0deg)';
-            
-            setTimeout(() => {
-                menu.style.display = 'none';
-                overlay.style.display = 'none';
-            }, 300);
-        }
+    window.CURRENT_USER = null;
 
-        function connectWallet() {
-            if (window.tonConnectUI) {
-                window.tonConnectUI.openModal();
-            }
-            closeMenu();
-        }
+    tonConnectUI.onStatusChange(wallet => {
+      if (wallet) {
+        CURRENT_USER = wallet.account.address;
+        document.getElementById('wallet').innerText = CURRENT_USER.slice(0, 6) + "...";
+      }
+    });
 
-        function toggleTheme() {
-            const body = document.body;
-            const currentTheme = body.getAttribute('data-theme');
-            
-            if (currentTheme === 'dark') {
-                body.setAttribute('data-theme', 'light');
-                localStorage.setItem('theme', 'light');
-                if (window.showNotification) {
-                    showNotification("Switched to Light Mode", "info");
-                }
-            } else {
-                body.setAttribute('data-theme', 'dark');
-                localStorage.setItem('theme', 'dark');
-                if (window.showNotification) {
-                    showNotification("Switched to Dark Mode", "info");
-                }
-            }
-        }
+    /* ================= NFT DATA ================= */
+    window.ALL_NFTS = [];
 
-        function clearCache() {
-            if (confirm("Clear all cache and reload the page?")) {
-                localStorage.clear();
-                sessionStorage.clear();
-                if (window.showNotification) {
-                    showNotification("Cache cleared, reloading...", "info");
-                }
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            }
-        }
-
-        // ===== ФУНКЦИИ УВЕДОМЛЕНИЙ =====
-        function showNotification(text, type = 'info') {
-            const notif = document.getElementById('notification');
-            const notifText = document.getElementById('notification-text');
-            
-            notifText.textContent = text;
-            
-            const colors = {
-                success: 'linear-gradient(135deg, #00b09b, #96c93d)',
-                error: 'linear-gradient(135deg, #ff416c, #ff4b2b)',
-                info: 'linear-gradient(135deg, #2081e2, #1a73e8)',
-                warning: 'linear-gradient(135deg, #f9a825, #ff9800)'
-            };
-            
-            notif.style.background = colors[type] || colors.info;
-            notif.style.display = 'block';
-            
-            setTimeout(() => {
-                notif.style.display = 'none';
-            }, 4000);
-        }
-
-        function showLoader(text = "Processing...") {
-            const loader = document.getElementById('global-loader');
-            const loaderText = document.getElementById('loader-text');
-            loaderText.textContent = text;
-            loader.style.display = 'flex';
-        }
-
-        function hideLoader() {
-            const loader = document.getElementById('global-loader');
-            loader.style.display = 'none';
-        }
-
-        // ===== ФИЛЬТРАЦИЯ NFT =====
-        function filterNFTs(filterType) {
-            // Обновляем активные кнопки
-            window.applyFilter = function(type, el) {
-    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    if (el) el.classList.add('active');
-
-    let data = [...ALL_NFTS];
-
-    switch (type) {
-        case 'featured':
-            data = data.filter(n => n.featured);
-            break;
-        case 'new':
-            data.sort((a, b) => b.createdAt - a.createdAt);
-            break;
-        case 'sale':
-            data = data.filter(n => n.listed && !n.sold);
-            break;
-        default:
-            data.sort((a, b) => b.createdAt - a.createdAt);
+    async function loadNFTs() {
+      const snap = await getDocs(collection(db, "nfts"));
+      ALL_NFTS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      applyFilter('all');
     }
 
-    renderNFTs(data);
-};
+    window.applyFilter = function(type) {
+      let list = [...ALL_NFTS];
+      if (type === 'featured') list = list.filter(n => n.featured);
+      if (type === 'sale') list = list.filter(n => n.listed && !n.sold);
+      if (type === 'new') list.sort((a, b) => b.createdAt - a.createdAt);
+      renderNFTs(list);
+    }
 
-        // ===== TELEGRAM WEB APP =====
-        const tg = window.Telegram?.WebApp;
-        if (tg) {
-            tg.expand();
-            tg.disableVerticalSwipes();
-            
-            tg.BackButton.show();
-            tg.BackButton.onClick(() => {
-                tg.close();
-            });
-            
-            // Скрываем кнопку меню в Telegram, если есть Telegram кнопка
-            const menuBtn = document.getElementById('menu-button');
-            if (tg.platform !== 'unknown') {
-                menuBtn.style.display = 'none'; // Telegram сам предоставляет навигацию
-            }
-        }
+    function renderNFTs(nfts) {
+      const grid = document.getElementById('nft-grid');
+      grid.innerHTML = "";
 
-        // ===== ОБНОВЛЕНИЕ ИНФОРМАЦИИ ПОЛЬЗОВАТЕЛЯ =====
-        function updateUserInfo() {
-            if (window.CURRENT_USER_ADDRESS) {
-                const addressEl = document.getElementById('user-address');
-                const balanceEl = document.getElementById('user-balance');
-                
-                if (addressEl) {
-                    const shortAddr = window.CURRENT_USER_ADDRESS.slice(0, 6) + '...' + window.CURRENT_USER_ADDRESS.slice(-4);
-                    addressEl.textContent = shortAddr;
-                    addressEl.style.color = '#00b09b';
-                }
-                
-                if (balanceEl) {
-                    balanceEl.textContent = "Connected";
-                    balanceEl.style.color = '#ffd700';
-                }
-            }
-        }
+      nfts.forEach(nft => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${nft.image}" />
+          <h3>${nft.name}</h3>
+          <p>${nft.price} TON</p>
+          ${nft.listed && !nft.sold ? `<button onclick="buyNFT('${nft.id}','${nft.owner}',${nft.price})">Buy</button>` : '<span>Sold</span>'}
+        `;
+        grid.appendChild(card);
+      });
+    }
 
-        // ===== АВТОМАТИЧЕСКОЕ ОБНОВЛЕНИЕ =====
-        setInterval(updateUserInfo, 2000);
+    window.buyNFT = async function(id, seller, price) {
+      if (!tonConnectUI.connected) return alert('Connect wallet');
 
-        // ===== ГЛОБАЛЬНЫЙ ДОСТУП К ФУНКЦИЯМ =====
-        window.openMenu = openMenu;
-        window.closeMenu = closeMenu;
-        window.openMintModal = openMintModal;
-        window.closeMintModal = closeMintModal;
-        window.showNotification = showNotification;
-        window.showLoader = showLoader;
-        window.hideLoader = hideLoader;
-        window.filterNFTs = filterNFTs;
-        window.updateUserInfo = updateUserInfo;
+      await tonConnectUI.sendTransaction({
+        validUntil: Math.floor(Date.now()/1000)+300,
+        messages: [{ address: seller, amount: (price*1e9).toString() }]
+      });
 
-        // ===== ИНИЦИАЛИЗАЦИЯ =====
-        document.addEventListener('DOMContentLoaded', function() {
-            // Восстанавливаем тему
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-                document.body.setAttribute('data-theme', savedTheme);
-            }
-            
-            // Закрытие меню при клике на оверлей
-            document.getElementById('menu-overlay').addEventListener('click', closeMenu);
-            
-            // Закрытие меню при нажатии ESC
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    closeMenu();
-                }
-            });
-            
-            console.log("✅ Menu system ready!");
-        });
-    </script>
+      await updateDoc(doc(db, 'nfts', id), {
+        owner: CURRENT_USER,
+        sold: true,
+        listed: false,
+        soldAt: Date.now()
+      });
 
-    <!-- Основной скрипт приложения -->
-    <script type="module" src="script.js"></script>
-    
-    <!-- Автоматическое предложение подключения -->
-    <script>
-        setTimeout(() => {
-            const userAddress = document.getElementById('user-address');
-            if (userAddress && userAddress.textContent === 'Not Connected') {
-                if (window.showNotification) {
-                    showNotification("Connect your TON wallet to buy and create NFTs!", "info");
-                }
-            }
-        }, 3000);
-    </script>
+      loadNFTs();
+    }
+
+    window.mintNFT = async function() {
+      const name = document.getElementById('m-name').value;
+      const price = Number(document.getElementById('m-price').value);
+      const image = document.getElementById('m-image').value;
+
+      if (!tonConnectUI.connected) return alert('Connect wallet');
+
+      await tonConnectUI.sendTransaction({
+        validUntil: Math.floor(Date.now()/1000)+300,
+        messages: [{ address: MARKET_OWNER, amount: (MINT_FEE*1e9).toString() }]
+      });
+
+      await addDoc(collection(db,'nfts'),{
+        name,image,price,
+        owner: CURRENT_USER,
+        creator: CURRENT_USER,
+        listed:true,
+        sold:false,
+        featured:false,
+        createdAt:Date.now()
+      });
+
+      loadNFTs();
+    }
+
+    window.onload = loadNFTs;
+  </script>
+
+  <style>
+    body{background:#0b0b14;color:#fff;font-family:sans-serif;margin:0}
+    header{display:flex;justify-content:space-between;align-items:center;padding:15px;background:#111}
+    button{padding:10px 15px;border:none;border-radius:6px;background:#6a4cff;color:#fff;cursor:pointer}
+    .filters{display:flex;gap:10px;padding:15px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:15px;padding:15px}
+    .card{background:#161625;padding:10px;border-radius:10px;text-align:center}
+    .card img{width:100%;border-radius:10px}
+    input{width:100%;padding:8px;margin:5px 0;border-radius:6px;border:none}
+  </style>
+
+</head>
+<body>
+
+<header>
+  <img src="logo.png" height="32" />
+  <button onclick="tonConnectUI.openModal()">Connect Wallet</button>
+  <span id="wallet"></span>
+</header>
+
+<div class="filters">
+  <button onclick="applyFilter('all')">All</button>
+  <button onclick="applyFilter('featured')">⭐ Featured</button>
+  <button onclick="applyFilter('new')">🆕 New</button>
+  <button onclick="applyFilter('sale')">💰 For Sale</button>
+</div>
+
+<div id="nft-grid" class="grid"></div>
+
+<hr style="margin:30px 0" />
+
+<div style="padding:15px">
+  <h2>Create NFT</h2>
+  <input id="m-name" placeholder="NFT name" />
+  <input id="m-image" placeholder="Image URL (IPFS)" />
+  <input id="m-price" placeholder="Price TON" type="number" />
+  <button onclick="mintNFT()">Mint (0.3 TON)</button>
+</div>
+
 </body>
 </html>
