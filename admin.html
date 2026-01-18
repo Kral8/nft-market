@@ -61,24 +61,33 @@
         window.checkPass = async () => {
     const enteredPass = document.getElementById('admin-pass').value;
     
-    // Стучимся в Firebase: коллекция settings, документ admin
-    const adminDoc = await getDoc(doc(db, "settings", "admin"));
-    
-    if (adminDoc.exists()) {
-        const correctPass = adminDoc.data().password; // Это то самое поле, которое ты сейчас создал
+    try {
+        // 1. Получаем ссылку на документ из коллекции settings с ID admin
+        const adminDocRef = doc(db, "settings", "admin");
         
-        if (enteredPass === correctPass) {
-            document.getElementById('login-section').style.display = 'none';
-            document.getElementById('admin-content').style.display = 'block';
-            loadNFTs();
+        // 2. Скачиваем этот документ из Firebase
+        const adminSnap = await getDoc(adminDocRef);
+        
+        if (adminSnap.exists()) {
+            const data = adminSnap.data();
+            const correctPass = data.password; // Тот самый пароль из поля password в Firebase
+
+            // 3. Сравниваем введенный пароль с паролем из базы
+            if (enteredPass === correctPass) {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+                loadNFTs(); // Загружаем список NFT только после входа
+            } else {
+                alert("❌ Неверный пароль из Firebase!");
+            }
         } else {
-            alert("Неверный пароль!");
+            alert("❌ Ошибка: В Firebase не создан документ 'admin' в коллекции 'settings'!");
         }
-    } else {
-        alert("Ошибка: Документ с паролем не найден в базе!");
+    } catch (error) {
+        console.error("Ошибка при проверке пароля:", error);
+        alert("❌ Произошла ошибка при подключении к базе данных.");
     }
 };
-
         // Сохранение JWT (в локалсторедж браузера)
         window.saveJWT = () => {
             const jwt = document.getElementById('pinata-jwt').value;
