@@ -9,20 +9,14 @@
         .container { max-width: 600px; margin: 0 auto; background: #18202a; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         h1 { color: #ffd700; text-align: center; text-transform: uppercase; letter-spacing: 2px; }
         h3 { border-bottom: 1px solid #30363d; padding-bottom: 10px; margin-top: 30px; color: #ffd700; }
-        
         .section { background: #0d1117; padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid #30363d; }
-        
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #1c2531; border: 1px solid #30363d; border-radius: 10px; color: white; box-sizing: border-box; outline: none; }
-        input:focus { border-color: #ffd700; }
-        
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; background: #1c2531; border: 1px solid #30363d; border-radius: 10px; color: white; box-sizing: border-box; outline: none; font-family: inherit; }
+        input:focus, textarea:focus { border-color: #ffd700; }
         button { width: 100%; padding: 14px; background: #2081e2; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
         button:hover { opacity: 0.8; transform: translateY(-2px); }
-        
         .nft-item { background: #1c2531; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #ffd700; }
         .del-btn { background: #ff4757; width: auto; padding: 8px 15px; font-size: 12px; }
-        
-        .status { color: #00b09b; text-align: center; font-weight: bold; margin: 10px 0; display: none; }
-        #loading-overlay { display: none; text-align: center; color: #ffd700; margin: 10px 0; }
+        #loading-overlay { display: none; text-align: center; color: #ffd700; margin: 10px 0; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -41,13 +35,15 @@
     <div id="admin-content" style="display: none;">
         
         <div class="section" style="border: 1px solid #00b09b;">
-            <h3>🚀 Fast Free Mint (Admin)</h3>
-            <p style="font-size: 12px; color: #8a939b;">Создание NFT без оплаты TON</p>
-            <input type="text" id="admin-nft-name" placeholder="NFT Name">
-            <input type="text" id="admin-nft-ticker" placeholder="Ticker (e.g. $ROYAL)">
+            <h3>🚀 Профессиональный Минт (Admin)</h3>
+            <p style="font-size: 12px; color: #8a939b;">Бесплатное создание NFT с описанием</p>
+            <input type="text" id="admin-nft-name" placeholder="Название NFT (напр. Royal Shark #1)">
+            <input type="text" id="admin-nft-series" placeholder="Серия/Коллекция (напр. Genesis Collection)">
+            <textarea id="admin-nft-desc" rows="3" placeholder="Описание... чем уникален этот NFT?"></textarea>
+            <input type="number" id="admin-nft-supply" placeholder="Количество штук (Supply)" value="1">
             <input type="file" id="admin-nft-file" accept="image/*">
-            <div id="loading-overlay">⏳ Processing... Please wait...</div>
-            <button onclick="adminMint()" style="background: #00b09b;">Create NFT for Free</button>
+            <div id="loading-overlay">⏳ Загрузка в IPFS... Подождите...</div>
+            <button onclick="adminMint()" style="background: #00b09b;">Создать Официальный NFT</button>
         </div>
 
         <div class="section">
@@ -83,7 +79,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 1. ПРОВЕРКА ПАРОЛЯ ИЗ FIREBASE
     window.checkPass = async () => {
         const enteredPass = document.getElementById('admin-pass').value;
         try {
@@ -96,27 +91,25 @@
                 alert("❌ Wrong Admin Password!");
             }
         } catch (e) {
-            alert("❌ Database Error. Check your Firebase Rules.");
+            alert("❌ Database Error.");
         }
     };
 
-    // 2. БЕСПЛАТНЫЙ МИНТ
     window.adminMint = async () => {
         const file = document.getElementById('admin-nft-file').files[0];
         const jwt = localStorage.getItem('pinata_jwt');
         const name = document.getElementById('admin-nft-name').value;
-        const ticker = document.getElementById('admin-nft-ticker').value;
+        const series = document.getElementById('admin-nft-series').value;
+        const desc = document.getElementById('admin-nft-desc').value;
+        const supply = document.getElementById('admin-nft-supply').value;
         const loader = document.getElementById('loading-overlay');
 
         if (!file || !jwt || !name) {
-            alert("Заполни все поля (Name, File) и убедись, что Token сохранен!");
-            return;
+            alert("Заполни имя и выбери файл!"); return;
         }
 
         try {
             loader.style.display = 'block';
-            
-            // Загрузка в IPFS
             const formData = new FormData();
             formData.append('file', file);
             const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
@@ -125,38 +118,34 @@
                 body: formData
             });
             const data = await res.json();
-            
             if (!data.IpfsHash) throw new Error("Pinata error");
 
             const imageUrl = `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`;
 
-            // Запись в базу без транзакции TON
             await addDoc(collection(db, "nfts"), {
                 name: name,
-                ticker: ticker || "NFT",
+                series: series || "Collection",
+                description: desc || "Exclusive Royal NFT",
+                supply: supply || "1",
                 image: imageUrl,
                 createdAt: Date.now(),
                 isAdmin: true
             });
 
-            alert("✅ NFT создан и добавлен на маркет бесплатно!");
-            document.getElementById('admin-nft-name').value = '';
-            document.getElementById('admin-nft-ticker').value = '';
+            alert("✅ NFT успешно создан бесплатно!");
+            location.reload();
         } catch (e) {
-            alert("❌ Ошибка при загрузке. Проверь Pinata JWT.");
+            alert("❌ Ошибка при загрузке.");
         } finally {
             loader.style.display = 'none';
         }
     };
 
-    // 3. УПРАВЛЕНИЕ ТОКЕНОМ PINATA
     window.saveJWT = () => {
-        const jwt = document.getElementById('pinata-jwt').value;
-        localStorage.setItem('pinata_jwt', jwt);
-        alert("✅ Pinata Token Saved!");
+        localStorage.setItem('pinata_jwt', document.getElementById('pinata-jwt').value);
+        alert("✅ Token Saved!");
     };
 
-    // 4. ЗАГРУЗКА И УДАЛЕНИЕ NFT
     function loadNFTs() {
         onSnapshot(collection(db, "nfts"), (snapshot) => {
             const list = document.getElementById('nft-list');
@@ -165,24 +154,17 @@
                 const nft = d.data();
                 const item = document.createElement('div');
                 item.className = 'nft-item';
-                item.innerHTML = `
-                    <span>${nft.name} ${nft.isAdmin ? '👑' : ''}</span>
-                    <button class="del-btn" onclick="deleteNFT('${d.id}')">Delete</button>
-                `;
+                item.innerHTML = `<span>${nft.name} ${nft.isAdmin ? '👑' : ''}</span><button class="del-btn" onclick="deleteNFT('${d.id}')">Delete</button>`;
                 list.appendChild(item);
             });
         });
     }
 
     window.deleteNFT = async (id) => {
-        if(confirm("Confirm deletion?")) {
-            await deleteDoc(doc(db, "nfts", id));
-        }
+        if(confirm("Confirm deletion?")) await deleteDoc(doc(db, "nfts", id));
     };
 
-    // Подгружаем токен из памяти если он есть
     document.getElementById('pinata-jwt').value = localStorage.getItem('pinata_jwt') || "";
 </script>
-
 </body>
 </html>
