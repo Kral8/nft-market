@@ -74,7 +74,7 @@ body {
     border-radius: 24px;
     border: 1px solid var(--glass);
     overflow: hidden;
-    position: relative; /* Важно для эффектов */
+    position: relative;
     transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -115,6 +115,44 @@ body {
 
 .buy-btn:active {
     transform: scale(0.95);
+}
+
+/* Выбор сети (Multi-chain Selector) */
+.network-selector {
+    scrollbar-width: none; /* Скрываем скроллбар в Firefox */
+    -ms-overflow-style: none; /* Скрываем скроллбар в IE */
+}
+
+.network-selector::-webkit-scrollbar {
+    display: none; /* Скрываем скроллбар в Chrome/Safari */
+}
+
+.net-opt {
+    background: var(--glass);
+    border: 1px solid var(--glass);
+    padding: 10px 18px;
+    border-radius: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    transition: 0.3s;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dim);
+}
+
+.net-opt.active {
+    border-color: var(--gold);
+    background: rgba(255, 215, 0, 0.1);
+    color: var(--gold);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+}
+
+.net-opt:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
 }
 
 /* Кнопка создания (FAB) */
