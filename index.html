@@ -20,42 +20,48 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getFirestore, collection, getDocs, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    /* ================= CONFIG ================= */
+    /* ================= FIREBASE CONFIG ================= */
     const firebaseConfig = {
-      apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
-      authDomain: "royal-nft.firebaseapp.com",
-      projectId: "royal-nft",
-      storageBucket: "royal-nft.firebasestorage.app",
-      messagingSenderId: "616712040035",
-      appId: "1:616712040035:web:59e449b2215e4126951256"
-      measurementId: "G-EXDFRJ78MX"
-      };
-
-    const MARKET_OWNER = "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98";
-    const MINT_FEE = 0.3;
+      apiKey: "PASTE_YOUR_KEY",
+      authDomain: "PASTE_YOUR_DOMAIN",
+      projectId: "PASTE_PROJECT_ID",
+      storageBucket: "PASTE_BUCKET",
+      messagingSenderId: "PASTE_SENDER_ID",
+      appId: "PASTE_APP_ID"
+    };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    /* ================= TON ================= */
+    /* ================= CONSTANTS ================= */
+    const MARKET_OWNER = "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98";
+    const MINT_FEE = 0.3; // TON
+
+    /* ================= TON CONNECT ================= */
     window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
       manifestUrl: "./tonconnect-manifest.json"
     });
 
     window.CURRENT_USER = null;
 
+    document.getElementById?.('connectBtn');
+
+    window.connectWallet = async function () {
+      await tonConnectUI.openModal();
+    }
+
     tonConnectUI.onStatusChange(wallet => {
       if (wallet) {
         CURRENT_USER = wallet.account.address;
-        document.getElementById('wallet').innerText = CURRENT_USER.slice(0, 6) + "...";
+        document.getElementById('wallet').innerText = CURRENT_USER.slice(0,6) + "...";
       }
     });
 
-    /* ================= NFT DATA ================= */
+    /* ================= NFT LOAD ================= */
     window.ALL_NFTS = [];
 
     async function loadNFTs() {
-      const snap = await getDocs(collection(db, "nfts"));
+      const snap = await getDocs(collection(db, 'nfts'));
       ALL_NFTS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       applyFilter('all');
     }
@@ -64,36 +70,37 @@
       let list = [...ALL_NFTS];
       if (type === 'featured') list = list.filter(n => n.featured);
       if (type === 'sale') list = list.filter(n => n.listed && !n.sold);
-      if (type === 'new') list.sort((a, b) => b.createdAt - a.createdAt);
+      if (type === 'new') list.sort((a,b)=>b.createdAt-a.createdAt);
       renderNFTs(list);
     }
 
     function renderNFTs(nfts) {
       const grid = document.getElementById('nft-grid');
-      grid.innerHTML = "";
-
+      grid.innerHTML = '';
       nfts.forEach(nft => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
           <img src="${nft.image}" />
           <h3>${nft.name}</h3>
-          <p>${nft.price} TON</p>
-          ${nft.listed && !nft.sold ? `<button onclick="buyNFT('${nft.id}','${nft.owner}',${nft.price})">Buy</button>` : '<span>Sold</span>'}
+          <p>${nft.description || ''}</p>
+          <small>${(nft.tags||[]).join(', ')}</small>
+          ${nft.listed && !nft.sold ? `<button onclick="buyNFT('${nft.id}','${nft.owner}',${nft.price})">Buy ${nft.price} TON</button>` : '<span>Not for sale</span>'}
         `;
-        grid.appendChild(card);
+        grid.appendChild(div);
       });
     }
 
+    /* ================= BUY ================= */
     window.buyNFT = async function(id, seller, price) {
-      if (!tonConnectUI.connected) return alert('Connect wallet');
+      if (!tonConnectUI.connected) return alert('Connect wallet first');
 
       await tonConnectUI.sendTransaction({
         validUntil: Math.floor(Date.now()/1000)+300,
         messages: [{ address: seller, amount: (price*1e9).toString() }]
       });
 
-      await updateDoc(doc(db, 'nfts', id), {
+      await updateDoc(doc(db,'nfts',id),{
         owner: CURRENT_USER,
         sold: true,
         listed: false,
@@ -103,11 +110,21 @@
       loadNFTs();
     }
 
-    window.mintNFT = async function() {
-      const name = document.getElementById('m-name').value;
-      const price = Number(document.getElementById('m-price').value);
-      const image = document.getElementById('m-image').value;
+    /* ================= IMAGE UPLOAD ================= */
+    window.UPLOADED_IMAGE = null;
+    window.handleImage = function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        UPLOADED_IMAGE = reader.result;
+        document.getElementById('preview').src = reader.result;
+      }
+      reader.readAsDataURL(file);
+    }
 
+    /* ================= MINT STEP 1 ================= */
+    window.mintNFT = async function() {
       if (!tonConnectUI.connected) return alert('Connect wallet');
 
       await tonConnectUI.sendTransaction({
@@ -115,17 +132,36 @@
         messages: [{ address: MARKET_OWNER, amount: (MINT_FEE*1e9).toString() }]
       });
 
-      await addDoc(collection(db,'nfts'),{
-        name,image,price,
+      const name = document.getElementById('n-name').value;
+      const desc = document.getElementById('n-desc').value;
+      const tags = document.getElementById('n-tags').value.split(',');
+
+      const docRef = await addDoc(collection(db,'nfts'),{
+        name,
+        description: desc,
+        tags,
+        image: UPLOADED_IMAGE,
         owner: CURRENT_USER,
         creator: CURRENT_USER,
-        listed:true,
-        sold:false,
-        featured:false,
-        createdAt:Date.now()
+        listed: false,
+        sold: false,
+        featured: false,
+        createdAt: Date.now()
       });
 
+      window.LAST_NFT = docRef.id;
+      document.getElementById('priceBlock').style.display='block';
+    }
+
+    /* ================= SET PRICE ================= */
+    window.setPrice = async function() {
+      const price = Number(document.getElementById('set-price').value);
+      await updateDoc(doc(db,'nfts',LAST_NFT),{
+        price,
+        listed:true
+      });
       loadNFTs();
+      alert('NFT published');
     }
 
     window.onload = loadNFTs;
@@ -134,12 +170,12 @@
   <style>
     body{background:#0b0b14;color:#fff;font-family:sans-serif;margin:0}
     header{display:flex;justify-content:space-between;align-items:center;padding:15px;background:#111}
-    button{padding:10px 15px;border:none;border-radius:6px;background:#6a4cff;color:#fff;cursor:pointer}
+    button{padding:10px 15px;border:none;border-radius:6px;background:#6a4cff;color:#fff}
     .filters{display:flex;gap:10px;padding:15px}
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:15px;padding:15px}
     .card{background:#161625;padding:10px;border-radius:10px;text-align:center}
     .card img{width:100%;border-radius:10px}
-    input{width:100%;padding:8px;margin:5px 0;border-radius:6px;border:none}
+    input,textarea{width:100%;padding:8px;margin:5px 0;border-radius:6px;border:none}
   </style>
 
 </head>
@@ -147,7 +183,7 @@
 
 <header>
   <img src="logo.png" height="32" />
-  <button onclick="tonConnectUI.openModal()">Connect Wallet</button>
+  <button onclick="connectWallet()">Connect Wallet</button>
   <span id="wallet"></span>
 </header>
 
@@ -160,14 +196,22 @@
 
 <div id="nft-grid" class="grid"></div>
 
-<hr style="margin:30px 0" />
+<hr />
 
 <div style="padding:15px">
   <h2>Create NFT</h2>
-  <input id="m-name" placeholder="NFT name" />
-  <input id="m-image" placeholder="Image URL (IPFS)" />
-  <input id="m-price" placeholder="Price TON" type="number" />
-  <button onclick="mintNFT()">Mint (0.3 TON)</button>
+  <input id="n-name" placeholder="NFT Name" />
+  <textarea id="n-desc" placeholder="Description"></textarea>
+  <input id="n-tags" placeholder="tags: art,crypto" />
+  <input type="file" accept="image/*" onchange="handleImage(event)" />
+  <img id="preview" style="width:100px;border-radius:8px" />
+  <button onclick="mintNFT()">Mint NFT (0.3 TON)</button>
+
+  <div id="priceBlock" style="display:none">
+    <h3>Set Price</h3>
+    <input id="set-price" type="number" placeholder="Price TON" />
+    <button onclick="setPrice()">Publish</button>
+  </div>
 </div>
 
 </body>
