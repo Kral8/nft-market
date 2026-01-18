@@ -3,83 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Royal Market | Multi-Chain Elite</title>
+    <title>Royal Market | TON Elite</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
 </head>
 <body>
-    <div id="activity-feed"></div>
-
     <nav class="navbar">
         <div class="nav-container">
-            <div class="brand"><span>ROYAL MARKET</span></div>
-            <div style="display:flex; gap:15px; align-items:center; position: relative;">
-                
-                <div class="network-dropdown">
-                    <div id="active-wallet-info" class="balance-badge" onclick="toggleNetMenu()" style="cursor:pointer; display:none;">
-                        <img id="current-net-icon" src="https://cryptologos.cc/logos/toncoin-ton-logo.png" width="16">
-                        <span id="display-balance">0.00</span> <span id="display-symbol">TON</span>
-                        <i class="fas fa-chevron-down" style="font-size: 10px; margin-left: 5px;"></i>
-                    </div>
-                    
-                    <div id="net-menu" class="dropdown-content">
-                        <div class="net-item" onclick="selectActiveNet('ton')">
-                            <img src="https://cryptologos.cc/logos/toncoin-ton-logo.png" width="16"> TON Network
-                        </div>
-                        <div class="net-item" onclick="selectActiveNet('solana')">
-                            <img src="https://cryptologos.cc/logos/solana-sol-logo.png" width="16"> Solana
-                        </div>
-                        <div class="net-item" onclick="selectActiveNet('bsc')">
-                            <img src="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" width="16"> BSC (BNB)
-                        </div>
-                        <div class="net-item" onclick="selectActiveNet('polygon')">
-                            <img src="https://cryptologos.cc/logos/polygon-matic-logo.png" width="16"> Polygon
-                        </div>
-                    </div>
+            <div class="brand"><span>ROYAL TON</span></div>
+            <div style="display:flex; gap:15px; align-items:center;">
+                <div id="active-wallet-info" class="balance-badge" style="display:none;">
+                    <img src="https://cryptologos.cc/logos/toncoin-ton-logo.png" width="16">
+                    <span id="display-balance">0.00</span> <span>TON</span>
                 </div>
-
-                <a href="my-nfts.html" class="nav-link"><i class="fas fa-wallet"></i> My NFTs</a>
                 <div id="ton-connect-btn"></div>
             </div>
         </div>
     </nav>
 
     <div id="app" style="max-width:1200px; margin:0 auto; padding:20px;">
-        <header class="hero">
-            <h1 class="glitch-text">Elite NFT Market</h1>
-            <p>Real-time Multi-chain Marketplace</p>
+        <header class="hero" style="text-align:center; padding: 40px 0;">
+            <h1 class="glitch-text" style="font-size: 3rem; margin-bottom: 10px;">TON NFT MARKET</h1>
+            <p style="color: var(--text-dim);">The most secure marketplace on TON Network</p>
         </header>
-        <div id="nft-grid" class="nft-grid"></div>
+
+        <div id="nft-grid" class="nft-grid">
+            </div>
     </div>
 
     <button class="fab-mint" onclick="toggleModal('mint-modal')">
-        <i class="fas fa-rocket"></i> Create your NFT
+        <i class="fas fa-plus"></i> Mint New NFT
     </button>
 
     <div id="mint-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Launch New NFT</h2>
+                <h2>Create TON NFT</h2>
                 <button onclick="toggleModal('mint-modal')" class="close-btn">&times;</button>
             </div>
             <div class="modal-scroll">
                 <label>NFT Name</label>
-                <input type="text" id="nft-name" class="modal-input" placeholder="e.g. Ton Moon">
+                <input type="text" id="nft-name" class="modal-input" placeholder="King of TON">
                 <label>Ticker</label>
-                <input type="text" id="nft-ticker" class="modal-input" placeholder="$TON">
+                <input type="text" id="nft-ticker" class="modal-input" placeholder="$ROYAL">
                 <label>Image URL</label>
-                <input type="text" id="nft-img-url" class="modal-input" placeholder="https://...">
-                <div class="fee-info" id="fee-display">Fee: 0.3 TON</div>
-                <button id="mint-btn" class="buy-btn" onclick="processMint()">Launch NFT</button>
+                <input type="text" id="nft-img-url" class="modal-input" placeholder="https://ipfs.io/...">
+                <div class="fee-info">Fee: 0.3 TON</div>
+                <button class="buy-btn" onclick="processMint()">Pay & Mint</button>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
@@ -93,221 +71,98 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        const MY_WALLETS = {
-            ton: "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98",
-            solana: "5eJPgW6Sk1AqDmaDTRkh2vVGX1LS1fgzySCgLU8q3Mvg",
-            bsc: "0x7DCe52e3087b45ab2CA7eB714ea569a0E208704C",
-            polygon: "0x7DCe52e3087b45ab2CA7eB714ea569a0E208704C"
+        // ТВОЙ КОШЕЛЕК ПРИЕМНИК
+        const MY_TON_WALLET = "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98";
+
+        // Инициализация TonConnect
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-btn'
+        });
+
+        // Слушатель статуса кошелька
+        tonConnectUI.onStatusChange(wallet => {
+            if (wallet) {
+                document.getElementById('active-wallet-info').style.display = 'flex';
+                updateBalance(wallet.account.address);
+            } else {
+                document.getElementById('active-wallet-info').style.display = 'none';
+            }
+        });
+
+        async function updateBalance(address) {
+            try {
+                const res = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${address}`);
+                const data = await res.json();
+                if (data.ok) {
+                    const bal = (parseInt(data.result.balance) / 1e9).toFixed(2);
+                    document.getElementById('display-balance').innerText = bal;
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // Логика оплаты и минта
+        window.processMint = async () => {
+            if (!tonConnectUI.connected) {
+                alert("Please connect TON wallet first!");
+                tonConnectUI.openModal();
+                return;
+            }
+
+            try {
+                const transaction = {
+                    validUntil: Math.floor(Date.now() / 1000) + 300,
+                    messages: [
+                        {
+                            address: MY_TON_WALLET,
+                            amount: "300000000" // 0.3 TON в нанокойнах
+                        }
+                    ]
+                };
+
+                const result = await tonConnectUI.sendTransaction(transaction);
+                
+                // Если оплата прошла, сохраняем в базу
+                await addDoc(collection(db, "nfts"), {
+                    name: document.getElementById('nft-name').value || "Unnamed NFT",
+                    ticker: document.getElementById('nft-ticker').value || "TON",
+                    image: document.getElementById('nft-img-url').value || "https://via.placeholder.com/300",
+                    price: 1,
+                    createdAt: Date.now()
+                });
+
+                alert("NFT Successfully Minted!");
+                toggleModal('mint-modal');
+            } catch (e) {
+                alert("Transaction rejected or failed.");
+            }
         };
 
-        const netConfig = {
-            ton: { symbol: 'TON', icon: 'https://cryptologos.cc/logos/toncoin-ton-logo.png', fee: '0.3', hexId: null },
-            solana: { symbol: 'SOL', icon: 'https://cryptologos.cc/logos/solana-sol-logo.png', fee: '0.02', hexId: null },
-            bsc: { symbol: 'BNB', icon: 'https://cryptologos.cc/logos/binance-coin-bnb-logo.png', fee: '0.005', hexId: '0x38' },
-            polygon: { symbol: 'POL', icon: 'https://cryptologos.cc/logos/polygon-matic-logo.png', fee: '1', hexId: '0x89' }
-        };
-
-        let currentNet = 'ton';
-
-       const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-    manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
-    buttonRootId: 'ton-connect-btn'
-});
-
-        // --- FETCH NFTs ---
+        // Живое обновление ленты NFT
         const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
         onSnapshot(q, (snapshot) => {
             const grid = document.getElementById('nft-grid');
             grid.innerHTML = '';
-            snapshot.forEach(d => {
-                const nft = d.data();
+            snapshot.forEach(doc => {
+                const nft = doc.data();
                 const card = document.createElement('div');
                 card.className = 'nft-card';
                 card.innerHTML = `
-                    <img src="${nft.image || 'https://via.placeholder.com/300'}" class="nft-image">
+                    <img src="${nft.image}" class="nft-image">
                     <div class="nft-info">
-                        <div style="display:flex; justify-content:space-between;">
-                            <h3>${nft.name}</h3>
-                            <span style="color:var(--text-dim); font-size:12px;">${nft.ticker}</span>
-                        </div>
-                        <div class="price-tag">${nft.price || 0} ${nft.network?.toUpperCase() || 'TON'}</div>
-                        <button class="buy-btn" onclick="buyNFT('${d.id}', '${nft.owner}', ${nft.price}, '${nft.network || 'ton'}')">
-                            Buy Now
-                        </button>
+                        <h3>${nft.name} <span style="font-size:12px; color:var(--text-dim);">${nft.ticker}</span></h3>
+                        <div class="price-tag">1.00 TON</div>
+                        <button class="buy-btn" onclick="alert('Coming soon: Secondary Market')">Buy NFT</button>
                     </div>
                 `;
                 grid.appendChild(card);
             });
         });
 
-        // --- NETWORK LOGIC ---
-        window.toggleNetMenu = () => {
-            const menu = document.getElementById('net-menu');
-            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-        };
-
-        window.selectActiveNet = async (net) => {
-    currentNet = net;
-    document.getElementById('net-menu').style.display = 'none';
-    
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const siteUrl = "https://kral8.github.io/nft-market/";
-
-    // 1. ЛОГИКА ДЛЯ МОБИЛЬНЫХ (ВЫБОР ЛЮБОГО КОШЕЛЬКА)
-    if (isMobile) {
-        // Если мы НЕ внутри браузера кошелька, даем выбор
-        if (!window.ethereum && !window.okxwallet && !window.solana) {
-            
-            // Если выбрана SOLANA
-            if (net === 'solana') {
-                // Эта ссылка вызывает системное меню выбора кошелька для Solana (Phantom, OKX, Solflare)
-                window.location.href = `https://phantom.app/ul/browse/${encodeURIComponent(siteUrl)}?ref=${encodeURIComponent(siteUrl)}`;
-                return;
-            } 
-            
-            // Если выбрана BSC или POLYGON (EVM)
-            if (net === 'bsc' || net === 'polygon') {
-                // Универсальная ссылка WalletConnect (откроет список: Trust, MetaMask, OKX, Binance Pay и т.д.)
-                window.location.href = `https://metamask.app.link/dapp/${siteUrl.replace("https://", "")}`;
-                return;
-            }
-        }
-    }
-
-    // 2. ЛОГИКА ДЛЯ ПК ИЛИ ВНУТРИ БРАУЗЕРА КОШЕЛЬКА
-    document.getElementById('current-net-icon').src = netConfig[net].icon;
-    document.getElementById('display-symbol').innerText = netConfig[net].symbol;
-    document.getElementById('fee-display').innerText = `Fee: ${netConfig[net].fee} ${netConfig[net].symbol}`;
-
-    try {
-        if (net === 'ton') {
-            await tonConnectUI.openModal(); // TON всегда имеет свой крутой выбор кошельков
-        } 
-        else if (net === 'solana') {
-            // Берем любой доступный провайдер Solana
-            const solanaProvider = window.solana || window.okxwallet?.solana || (window.phantom ? window.phantom.solana : null);
-            if (solanaProvider) {
-                await solanaProvider.connect();
-            } else {
-                alert("Кошелек Solana не найден. Попробуйте открыть через встроенный браузер Phantom или OKX.");
-            }
-        } 
-        else if (net === 'bsc' || net === 'polygon') {
-            // Берем любой доступный провайдер Ethereum (MetaMask, OKX, Trust, и т.д.)
-            const ethProvider = window.ethereum || window.okxwallet;
-            if (ethProvider) {
-                await ethProvider.request({ method: 'eth_requestAccounts' });
-                await ethProvider.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: netConfig[net].hexId }],
-                });
-            } else {
-                alert("EVM кошелек не найден. Попробуйте открыть через встроенный браузер Trust или MetaMask.");
-            }
-        }
-        
-        document.getElementById('active-wallet-info').style.display = 'flex';
-        updateBalance();
-    } catch (e) {
-        console.error("User cancelled or error:", e);
-    }
-};
-        async function connectSelectedWallet(net) {
-            try {
-                if ((net === 'bsc' || net === 'polygon') && window.ethereum) {
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: netConfig[net].hexId }],
-                    });
-                } else if (net === 'solana' && window.solana) {
-                    await window.solana.connect();
-                } else if (net === 'ton' && !tonConnectUI.connected) {
-                    await tonConnectUI.openModal();
-                }
-                updateBalance();
-            } catch (e) { console.error(e); }
-        }
-
-        async function updateBalance() {
-            const balEl = document.getElementById('display-balance');
-            try {
-                if (currentNet === 'ton' && tonConnectUI.account) {
-                    const res = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${tonConnectUI.account.address}`);
-                    const data = await res.json();
-                    balEl.innerText = data.ok ? (parseInt(data.result.balance) / 1e9).toFixed(2) : "0.00";
-                } else if ((currentNet === 'bsc' || currentNet === 'polygon') && window.ethereum) {
-                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    if (accounts[0]) {
-                        const balance = await window.ethereum.request({ method: 'eth_getBalance', params: [accounts[0], 'latest'] });
-                        balEl.innerText = (parseInt(balance, 16) / 1e18).toFixed(4);
-                    }
-                } else if (currentNet === 'solana' && window.solana?.publicKey) {
-                    const solRes = await fetch('https://api.mainnet-beta.solana.com', {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({jsonrpc:"2.0",id:1,method:"getBalance",params:[window.solana.publicKey.toString()]})
-                    });
-                    const solData = await solRes.json();
-                    balEl.innerText = solData.result ? (solData.result.value / 1e9).toFixed(2) : "0.00";
-                }
-            } catch (e) { balEl.innerText = "0.00"; }
-        }
-
-        // --- MINT PROCESS ---
-        window.processMint = async () => {
-            const fee = netConfig[currentNet].fee;
-            const recipient = MY_WALLETS[currentNet];
-            try {
-                if (currentNet === 'ton') {
-                    await tonConnectUI.sendTransaction({
-                        validUntil: Math.floor(Date.now() / 1000) + 300,
-                        messages: [{ address: recipient, amount: (fee * 1e9).toString() }]
-                    });
-                } else if (currentNet === 'solana') {
-                    const transaction = new solanaWeb3.Transaction().add(
-                        solanaWeb3.SystemProgram.transfer({
-                            fromPubkey: window.solana.publicKey,
-                            toPubkey: new solanaWeb3.PublicKey(recipient),
-                            lamports: fee * solanaWeb3.LAMPORTS_PER_SOL,
-                        })
-                    );
-                    const { blockhash } = await (await fetch('https://api.mainnet-beta.solana.com', {
-                        method: 'POST', headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({jsonrpc:"2.0",id:1,method:"getLatestBlockhash"})
-                    })).json().then(res => res.result.value);
-                    transaction.recentBlockhash = blockhash;
-                    transaction.feePayer = window.solana.publicKey;
-                    await window.solana.signAndSendTransaction(transaction);
-                } else if (currentNet === 'bsc' || currentNet === 'polygon') {
-                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    await window.ethereum.request({
-                        method: 'eth_sendTransaction',
-                        params: [{ from: accounts[0], to: recipient, value: (fee * 1e18).toString(16) }],
-                    });
-                }
-
-                await addDoc(collection(db, "nfts"), {
-                    name: document.getElementById('nft-name').value,
-                    ticker: document.getElementById('nft-ticker').value,
-                    image: document.getElementById('nft-img-url').value || "https://purple-charming-hamster-277.mypinata.cloud/ipfs/QmXkH2eS98HS6BScHczcmVRF1234cr4UiSX6pQad8n72EE",
-                    owner: "User", price: 1, network: currentNet, createdAt: Date.now()
-                });
-                alert("NFT Created!");
-                toggleModal('mint-modal');
-            } catch (e) { alert("Transaction failed/rejected"); }
-        };
-
         window.toggleModal = (id) => {
             const m = document.getElementById(id);
             m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
         };
-
-        tonConnectUI.onStatusChange((wallet) => {
-            if(wallet) {
-                document.getElementById('active-wallet-info').style.display = 'flex';
-                updateBalance();
-            }
-        });
     </script>
 </body>
 </html>
