@@ -147,13 +147,58 @@
         };
 
         window.selectActiveNet = async (net) => {
-            currentNet = net;
-            document.getElementById('net-menu').style.display = 'none';
-            document.getElementById('current-net-icon').src = netConfig[net].icon;
-            document.getElementById('display-symbol').innerText = netConfig[net].symbol;
-            document.getElementById('fee-display').innerText = `Fee: ${netConfig[net].fee} ${netConfig[net].symbol}`;
-            await connectSelectedWallet(net);
-        };
+    currentNet = net;
+    document.getElementById('net-menu').style.display = 'none';
+    document.getElementById('current-net-icon').src = netConfig[net].icon;
+    document.getElementById('display-symbol').innerText = netConfig[net].symbol;
+    document.getElementById('fee-display').innerText = `Fee: ${netConfig[net].fee} ${netConfig[net].symbol}`;
+    
+    // Показываем блок инфо, если он был скрыт
+    document.getElementById('active-wallet-info').style.display = 'flex';
+
+    try {
+        if (net === 'ton') {
+            // Если TON - открываем модалку TON
+            await tonConnectUI.openModal();
+        } 
+        else if (net === 'solana') {
+            // Если Solana - принудительно дергаем Phantom
+            if (window.solana) {
+                await window.solana.connect({ onlyIfTrusted: false }); // false заставляет окно всплыть
+                console.log("Solana connected:", window.solana.publicKey.toString());
+            } else {
+                alert("Phantom wallet not found! Please install it.");
+                window.open("https://phantom.app/", "_blank");
+            }
+        } 
+        else if (net === 'bsc' || net === 'polygon') {
+            // Если EVM (BSC/Polygon) - дергаем MetaMask
+            if (window.ethereum) {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // Принудительно просим сменить сеть
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: netConfig[net].hexId }],
+                    });
+                } catch (switchError) {
+                    // Если сети нет в кошельке, можно добавить код для добавления сети, 
+                    // но обычно MetaMask сам предлагает это сделать.
+                    console.error("Could not switch network", switchError);
+                }
+            } else {
+                alert("MetaMask not found!");
+            }
+        }
+        
+        // После выбора сразу обновляем баланс именно этой сети
+        setTimeout(() => updateBalance(), 500); 
+
+    } catch (e) {
+        console.error("Connection failed", e);
+    }
+};
 
         async function connectSelectedWallet(net) {
             try {
