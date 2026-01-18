@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
 </head>
 <body>
     <div id="activity-feed"></div>
@@ -69,8 +70,8 @@
                 <input type="text" id="nft-name" class="modal-input" placeholder="e.g. Ton Moon">
                 <label>Ticker</label>
                 <input type="text" id="nft-ticker" class="modal-input" placeholder="$TON">
-                <label>Image</label>
-                <input type="file" id="nft-file" class="modal-input" accept="image/*">
+                <label>Image URL (or use default)</label>
+                <input type="text" id="nft-img-url" class="modal-input" placeholder="https://...">
                 <div class="fee-info" id="fee-display">Fee: 0.3 TON</div>
                 <button id="mint-btn" class="buy-btn" onclick="processMint()">Launch NFT</button>
             </div>
@@ -79,7 +80,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, doc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
@@ -92,12 +93,12 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://cute-rugelach-0f683f.netlify.app/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
 
-        // ПЕРЕМЕННЫЕ СОСТОЯНИЯ
         let currentNet = 'ton';
         const netConfig = {
             ton: { symbol: 'TON', icon: 'https://cryptologos.cc/logos/toncoin-ton-logo.png', fee: '0.3 TON' },
@@ -106,24 +107,47 @@
             polygon: { symbol: 'POL', icon: 'https://cryptologos.cc/logos/polygon-matic-logo.png', fee: '1 POL' }
         };
 
-        // ОТКРЫТЬ/ЗАКРЫТЬ МЕНЮ СЕТЕЙ
+        // --- ВЫВОД NFT ИЗ FIREBASE (ВОЗВРАЩЕНО) ---
+        const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const grid = document.getElementById('nft-grid');
+            grid.innerHTML = '';
+            snapshot.forEach(d => {
+                const nft = d.data();
+                const card = document.createElement('div');
+                card.className = 'nft-card';
+                card.innerHTML = `
+                    <img src="${nft.image || 'https://via.placeholder.com/300'}" class="nft-image">
+                    <div class="nft-info">
+                        <div style="display:flex; justify-content:space-between;">
+                            <h3>${nft.name}</h3>
+                            <span style="color:var(--text-dim); font-size:12px;">${nft.ticker}</span>
+                        </div>
+                        <div class="price-tag">${nft.price || 0} ${nft.network?.toUpperCase() || 'TON'}</div>
+                        <button class="buy-btn" onclick="buyNFT('${d.id}', '${nft.owner}', ${nft.price}, '${nft.network || 'ton'}')">
+                            Buy Now
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        });
+
+        // --- ЛОГИКА БАЛАНСОВ ---
         window.toggleNetMenu = () => {
             const menu = document.getElementById('net-menu');
             menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
         };
 
-        // ВЫБОР СЕТИ
         window.selectActiveNet = async (net) => {
             currentNet = net;
             document.getElementById('net-menu').style.display = 'none';
             document.getElementById('current-net-icon').src = netConfig[net].icon;
             document.getElementById('display-symbol').innerText = netConfig[net].symbol;
             document.getElementById('fee-display').innerText = `Fee: ${netConfig[net].fee}`;
-            
-            await updateBalance(); // Обновляем баланс для выбранной сети
+            await updateBalance();
         };
 
-        // ОБНОВЛЕНИЕ БАЛАНСА (ЛОГИКА)
         async function updateBalance() {
             const balEl = document.getElementById('display-balance');
             balEl.innerText = "...";
@@ -135,14 +159,12 @@
                     balEl.innerText = data.ok ? (parseInt(data.result.balance) / 1e9).toFixed(2) : "0.00";
                 } 
                 else if ((currentNet === 'bsc' || currentNet === 'polygon') && window.ethereum) {
-                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    if (accounts[0]) {
-                        const balance = await window.ethereum.request({ method: 'eth_getBalance', params: [accounts[0], 'latest'] });
-                        balEl.innerText = (parseInt(balance, 16) / 1e18).toFixed(4);
-                    } else { balEl.innerText = "Connect Wallet"; }
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const balance = await window.ethereum.request({ method: 'eth_getBalance', params: [accounts[0], 'latest'] });
+                    balEl.innerText = (parseInt(balance, 16) / 1e18).toFixed(4);
                 }
                 else if (currentNet === 'solana' && window.solana) {
-                    const resp = await window.solana.connect({ onlyIfTrusted: true });
+                    const resp = await window.solana.connect();
                     const solRes = await fetch('https://api.mainnet-beta.solana.com', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getBalance", params: [resp.publicKey.toString()] })
@@ -152,31 +174,49 @@
                 } else {
                     balEl.innerText = "0.00";
                 }
-            } catch (e) { balEl.innerText = "Error"; }
+            } catch (e) { 
+                console.error(e);
+                balEl.innerText = "0.00"; 
+            }
         }
 
-        // Остальные функции (Buy, Mint, Snapshot) остаются как были...
-        // [Место для твоего кода onSnapshot и buyNFT]
-        
-        // Слушаем подключение TON кошелька
+        // --- ФУНКЦИИ МОДАЛОК И КНОПОК ---
+        window.toggleModal = (id) => {
+            const m = document.getElementById(id);
+            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+        };
+
+        window.processMint = async () => {
+            if (!tonConnectUI.connected) return tonConnectUI.openModal();
+            const name = document.getElementById('nft-name').value;
+            const ticker = document.getElementById('nft-ticker').value;
+            const img = document.getElementById('nft-img-url').value || "https://purple-charming-hamster-277.mypinata.cloud/ipfs/QmXkH2eS98HS6BScHczcmVRF1234cr4UiSX6pQad8n72EE";
+
+            try {
+                // Имитация транзакции комиссии
+                const tx = {
+                    validUntil: Math.floor(Date.now() / 1000) + 300,
+                    messages: [{ address: "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98", amount: "300000000" }]
+                };
+                await tonConnectUI.sendTransaction(tx);
+
+                await addDoc(collection(db, "nfts"), {
+                    name, ticker, image: img,
+                    owner: tonConnectUI.account.address,
+                    price: 1, network: currentNet,
+                    createdAt: Date.now()
+                });
+                alert("NFT Created!");
+                toggleModal('mint-modal');
+            } catch(e) { alert("Error or Rejected"); }
+        };
+
         tonConnectUI.onStatusChange((wallet) => {
             if(wallet) {
                 document.getElementById('active-wallet-info').style.display = 'flex';
                 updateBalance();
             }
         });
-
-        window.toggleModal = (id) => {
-            const m = document.getElementById(id);
-            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
-        };
-        
-        // Закрытие меню при клике вне его
-        window.onclick = (event) => {
-            if (!event.target.closest('.network-dropdown')) {
-                document.getElementById('net-menu').style.display = 'none';
-            }
-        };
     </script>
 </body>
 </html>
