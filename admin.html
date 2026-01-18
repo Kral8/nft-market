@@ -3,132 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Royal NFT Market</title>
+    <title>Admin - Royal NFT Control</title>
     <style>
-        body { background: #04111d; color: white; font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
-        .container { background: #18202a; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
-        h1 { color: #ffd700; text-align: center; }
-        .nft-item { background: #0d1117; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #30363d; }
-        .del-btn { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #0d1117; border: 1px solid #30363d; border-radius: 10px; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 14px; background: #2081e2; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        .success-msg { color: #00b09b; text-align: center; margin: 10px 0; display: none; }
+        body { background: #04111d; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: #18202a; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { color: #ffd700; text-align: center; text-transform: uppercase; letter-spacing: 2px; }
+        h3 { border-bottom: 1px solid #30363d; padding-bottom: 10px; margin-top: 30px; color: #ffd700; }
+        
+        .section { background: #0d1117; padding: 20px; border-radius: 15px; margin-bottom: 20px; border: 1px solid #30363d; }
+        
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #1c2531; border: 1px solid #30363d; border-radius: 10px; color: white; box-sizing: border-box; outline: none; }
+        input:focus { border-color: #ffd700; }
+        
+        button { width: 100%; padding: 14px; background: #2081e2; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 5px; }
+        button:hover { opacity: 0.8; transform: translateY(-2px); }
+        
+        .nft-item { background: #1c2531; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid #ffd700; }
+        .del-btn { background: #ff4757; width: auto; padding: 8px 15px; font-size: 12px; }
+        
+        .status { color: #00b09b; text-align: center; font-weight: bold; margin: 10px 0; display: none; }
+        #loading-overlay { display: none; text-align: center; color: #ffd700; margin: 10px 0; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>⚙️ Control Panel</h1>
-        
-        <div id="login-section">
-            <h3>Admin Access</h3>
-            <input type="password" id="admin-pass" placeholder="Enter password">
-            <button onclick="checkPass()">Login</button>
-        </div>
 
-        <div id="admin-content" style="display: none;">
-            <div id="msg" class="success-msg">Action successful!</div>
-            
-            <h3>Pinata JWT Setup</h3>
-            <input type="text" id="pinata-jwt" placeholder="Pinata JWT Token">
-            <button onclick="saveJWT()" style="background: #ffd700; color: black;">Save JWT</button>
+<div class="container">
+    <h1>👑 Admin Panel</h1>
 
-            <h3 style="margin-top: 30px;">Manage Marketplace NFT</h3>
-            <div id="nft-list">
-                <p style="color: #8a939b;">Loading items...</p>
-            </div>
-            
-            <button onclick="window.location.href='index.html'" style="background: #6c757d; margin-top: 20px;">← Back to Market</button>
+    <div id="login-section">
+        <div class="section">
+            <h3>Authentication</h3>
+            <input type="password" id="admin-pass" placeholder="Enter Admin Password">
+            <button onclick="checkPass()">Login to System</button>
         </div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        // ВОТ ТУТ Я ДОБАВИЛ getDoc
-        import { getFirestore, collection, onSnapshot, doc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
-            authDomain: "royal-nft.firebaseapp.com",
-            projectId: "royal-nft",
-            storageBucket: "royal-nft.firebasestorage.app",
-            messagingSenderId: "616712040035",
-            appId: "1:616712040035:web:59e449b2215e4126951256"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // Простая проверка пароля (сделай свой)
-        window.checkPass = async () => {
-    const enteredPass = document.getElementById('admin-pass').value;
-    
-    try {
-        // 1. Получаем ссылку на документ из коллекции settings с ID admin
-        const adminDocRef = doc(db, "settings", "admin");
+    <div id="admin-content" style="display: none;">
         
-        // 2. Скачиваем этот документ из Firebase
-        const adminSnap = await getDoc(adminDocRef);
-        
-        if (adminSnap.exists()) {
-            const data = adminSnap.data();
-            const correctPass = data.password; // Тот самый пароль из поля password в Firebase
+        <div class="section" style="border: 1px solid #00b09b;">
+            <h3>🚀 Fast Free Mint (Admin)</h3>
+            <p style="font-size: 12px; color: #8a939b;">Создание NFT без оплаты TON</p>
+            <input type="text" id="admin-nft-name" placeholder="NFT Name">
+            <input type="text" id="admin-nft-ticker" placeholder="Ticker (e.g. $ROYAL)">
+            <input type="file" id="admin-nft-file" accept="image/*">
+            <div id="loading-overlay">⏳ Processing... Please wait...</div>
+            <button onclick="adminMint()" style="background: #00b09b;">Create NFT for Free</button>
+        </div>
 
-            // 3. Сравниваем введенный пароль с паролем из базы
-            if (enteredPass === correctPass) {
+        <div class="section">
+            <h3>🔑 Pinata Configuration</h3>
+            <input type="text" id="pinata-jwt" placeholder="Your Pinata JWT Token">
+            <button onclick="saveJWT()" style="background: #ffd700; color: #000;">Save Token</button>
+        </div>
+
+        <div class="section">
+            <h3>📦 Market Items</h3>
+            <div id="nft-list">
+                <p style="text-align: center; color: #8a939b;">Loading marketplace...</p>
+            </div>
+        </div>
+
+        <button onclick="window.location.href='index.html'" style="background: #30363d;">← Exit to Site</button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, doc, deleteDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
+        authDomain: "royal-nft.firebaseapp.com",
+        projectId: "royal-nft",
+        storageBucket: "royal-nft.firebasestorage.app",
+        messagingSenderId: "616712040035",
+        appId: "1:616712040035:web:59e449b2215e4126951256"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 1. ПРОВЕРКА ПАРОЛЯ ИЗ FIREBASE
+    window.checkPass = async () => {
+        const enteredPass = document.getElementById('admin-pass').value;
+        try {
+            const adminDoc = await getDoc(doc(db, "settings", "admin"));
+            if (adminDoc.exists() && enteredPass === adminDoc.data().password) {
                 document.getElementById('login-section').style.display = 'none';
                 document.getElementById('admin-content').style.display = 'block';
-                loadNFTs(); // Загружаем список NFT только после входа
+                loadNFTs();
             } else {
-                alert("❌ Неверный пароль из Firebase!");
+                alert("❌ Wrong Admin Password!");
             }
-        } else {
-            alert("❌ Ошибка: В Firebase не создан документ 'admin' в коллекции 'settings'!");
+        } catch (e) {
+            alert("❌ Database Error. Check your Firebase Rules.");
         }
-    } catch (error) {
-        console.error("Ошибка при проверке пароля:", error);
-        alert("❌ Произошла ошибка при подключении к базе данных.");
-    }
-};
-        // Сохранение JWT (в локалсторедж браузера)
-        window.saveJWT = () => {
-            const jwt = document.getElementById('pinata-jwt').value;
-            localStorage.setItem('pinata_jwt', jwt);
-            showStatus();
-        };
+    };
 
-        function showStatus() {
-            const msg = document.getElementById('msg');
-            msg.style.display = 'block';
-            setTimeout(() => msg.style.display = 'none', 3000);
+    // 2. БЕСПЛАТНЫЙ МИНТ
+    window.adminMint = async () => {
+        const file = document.getElementById('admin-nft-file').files[0];
+        const jwt = localStorage.getItem('pinata_jwt');
+        const name = document.getElementById('admin-nft-name').value;
+        const ticker = document.getElementById('admin-nft-ticker').value;
+        const loader = document.getElementById('loading-overlay');
+
+        if (!file || !jwt || !name) {
+            alert("Заполни все поля (Name, File) и убедись, что Token сохранен!");
+            return;
         }
 
-        // Загрузка и удаление NFT
-        function loadNFTs() {
-            onSnapshot(collection(db, "nfts"), (snapshot) => {
-                const list = document.getElementById('nft-list');
-                list.innerHTML = '';
-                snapshot.forEach(d => {
-                    const nft = d.data();
-                    const item = document.createElement('div');
-                    item.className = 'nft-item';
-                    item.innerHTML = `
-                        <span>${nft.name}</span>
-                        <button class="del-btn" onclick="deleteNFT('${d.id}')">Delete</button>
-                    `;
-                    list.appendChild(item);
-                });
+        try {
+            loader.style.display = 'block';
+            
+            // Загрузка в IPFS
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${jwt}` },
+                body: formData
             });
-        }
+            const data = await res.json();
+            
+            if (!data.IpfsHash) throw new Error("Pinata error");
 
-        window.deleteNFT = async (id) => {
-            if(confirm("Delete this NFT from market?")) {
-                await deleteDoc(doc(db, "nfts", id));
-                showStatus();
-            }
-        };
-        
-        // Загрузка JWT если есть
-        document.getElementById('pinata-jwt').value = localStorage.getItem('pinata_jwt') || "";
-    </script>
+            const imageUrl = `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`;
+
+            // Запись в базу без транзакции TON
+            await addDoc(collection(db, "nfts"), {
+                name: name,
+                ticker: ticker || "NFT",
+                image: imageUrl,
+                createdAt: Date.now(),
+                isAdmin: true
+            });
+
+            alert("✅ NFT создан и добавлен на маркет бесплатно!");
+            document.getElementById('admin-nft-name').value = '';
+            document.getElementById('admin-nft-ticker').value = '';
+        } catch (e) {
+            alert("❌ Ошибка при загрузке. Проверь Pinata JWT.");
+        } finally {
+            loader.style.display = 'none';
+        }
+    };
+
+    // 3. УПРАВЛЕНИЕ ТОКЕНОМ PINATA
+    window.saveJWT = () => {
+        const jwt = document.getElementById('pinata-jwt').value;
+        localStorage.setItem('pinata_jwt', jwt);
+        alert("✅ Pinata Token Saved!");
+    };
+
+    // 4. ЗАГРУЗКА И УДАЛЕНИЕ NFT
+    function loadNFTs() {
+        onSnapshot(collection(db, "nfts"), (snapshot) => {
+            const list = document.getElementById('nft-list');
+            list.innerHTML = '';
+            snapshot.forEach(d => {
+                const nft = d.data();
+                const item = document.createElement('div');
+                item.className = 'nft-item';
+                item.innerHTML = `
+                    <span>${nft.name} ${nft.isAdmin ? '👑' : ''}</span>
+                    <button class="del-btn" onclick="deleteNFT('${d.id}')">Delete</button>
+                `;
+                list.appendChild(item);
+            });
+        });
+    }
+
+    window.deleteNFT = async (id) => {
+        if(confirm("Confirm deletion?")) {
+            await deleteDoc(doc(db, "nfts", id));
+        }
+    };
+
+    // Подгружаем токен из памяти если он есть
+    document.getElementById('pinata-jwt').value = localStorage.getItem('pinata_jwt') || "";
+</script>
+
 </body>
 </html>
