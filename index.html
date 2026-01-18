@@ -504,16 +504,28 @@
         // ===== ФИЛЬТРАЦИЯ NFT =====
         function filterNFTs(filterType) {
             // Обновляем активные кнопки
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            // Обновляем сетку с учетом фильтра
-            if (window.applyFilter) {
-                window.applyFilter(filterType);
-            }
-        }
+            window.applyFilter = function(type, el) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    if (el) el.classList.add('active');
+
+    let data = [...ALL_NFTS];
+
+    switch (type) {
+        case 'featured':
+            data = data.filter(n => n.featured);
+            break;
+        case 'new':
+            data.sort((a, b) => b.createdAt - a.createdAt);
+            break;
+        case 'sale':
+            data = data.filter(n => n.listed && !n.sold);
+            break;
+        default:
+            data.sort((a, b) => b.createdAt - a.createdAt);
+    }
+
+    renderNFTs(data);
+};
 
         // ===== TELEGRAM WEB APP =====
         const tg = window.Telegram?.WebApp;
