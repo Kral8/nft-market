@@ -69,8 +69,6 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
-        // Кошелек-приемник
         const MY_TON_WALLET = "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98";
 
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
@@ -98,76 +96,42 @@
             } catch (e) { console.error(e); }
         }
 
-        // ОСНОВНАЯ ФУНКЦИЯ МИНТА
         window.processMint = async () => {
-            if (!tonConnectUI.connected) {
-                alert("Please connect TON wallet!");
-                tonConnectUI.openModal();
-                return;
-            }
-
-            const fileInput = document.getElementById('nft-file');
-            const file = fileInput.files[0];
-            const jwt = localStorage.getItem('pinata_jwt'); 
-
-            if (!file) { alert("Please select an image!"); return; }
-            if (!jwt) { alert("Admin Error: Pinata JWT not configured!"); return; }
+            if (!tonConnectUI.connected) { alert("Connect wallet!"); tonConnectUI.openModal(); return; }
+            const file = document.getElementById('nft-file').files[0];
+            const jwt = localStorage.getItem('pinata_jwt');
+            if (!file || !jwt) { alert("Check image and admin settings!"); return; }
 
             const mintBtn = document.getElementById('mint-submit-btn');
-            
             try {
-                mintBtn.innerText = "⏳ Uploading Image...";
+                mintBtn.innerText = "⏳ Uploading...";
                 mintBtn.disabled = true;
-
-                // 1. Загрузка в Pinata (IPFS)
                 const formData = new FormData();
                 formData.append('file', file);
-
                 const pinRes = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${jwt}` },
-                    body: formData
+                    method: 'POST', headers: { 'Authorization': `Bearer ${jwt}` }, body: formData
                 });
-                
                 const pinData = await pinRes.json();
-                if (!pinData.IpfsHash) throw new Error("Pinata failed");
-
                 const imageUrl = `https://gateway.pinata.cloud/ipfs/${pinData.IpfsHash}`;
 
-                // 2. Оплата
-                mintBtn.innerText = "💎 Confirm in Wallet...";
-                const transaction = {
+                mintBtn.innerText = "💎 Confirming...";
+                await tonConnectUI.sendTransaction({
                     validUntil: Math.floor(Date.now() / 1000) + 300,
-                    messages: [{
-                        address: MY_TON_WALLET,
-                        amount: "300000000" // 0.3 TON
-                    }]
-                };
+                    messages: [{ address: MY_TON_WALLET, amount: "300000000" }]
+                });
 
-                await tonConnectUI.sendTransaction(transaction);
-
-                // 3. Сохранение в Firebase
                 await addDoc(collection(db, "nfts"), {
                     name: document.getElementById('nft-name').value || "Unnamed",
-                    ticker: document.getElementById('nft-ticker').value || "NFT",
+                    series: "User Collection",
+                    description: "Minted by User",
                     image: imageUrl,
                     createdAt: Date.now()
                 });
-
-                alert("NFT Created Successfully!");
-                toggleModal('mint-modal');
+                alert("NFT Created!");
                 location.reload();
-
-            } catch (e) {
-                console.error(e);
-                alert("Error. Check your wallet or Pinata JWT.");
-            } finally {
-                mintBtn.innerText = "Pay & Mint";
-                mintBtn.disabled = false;
-            }
+            } catch (e) { alert("Error!"); } finally { mintBtn.disabled = false; mintBtn.innerText = "Pay & Mint"; }
         };
 
-        // Живая лента
         const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
         onSnapshot(q, (snapshot) => {
             const grid = document.getElementById('nft-grid');
@@ -176,12 +140,18 @@
                 const nft = doc.data();
                 const card = document.createElement('div');
                 card.className = 'nft-card';
+                // ТУТ ОБНОВЛЕННЫЙ ДИЗАЙН КАРТОЧКИ
                 card.innerHTML = `
+                    <div style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:10px; font-size:10px; color:#ffd700;">${nft.series || 'Collection'}</div>
                     <img src="${nft.image}" class="nft-image">
                     <div class="nft-info">
-                        <h3>${nft.name} <span style="font-size:12px; color:var(--text-dim);">${nft.ticker}</span></h3>
-                        <div class="price-tag">0.3 TON</div>
-                        <button class="buy-btn" onclick="alert('Secondary market coming soon')">Buy NFT</button>
+                        <h3>${nft.name} ${nft.isAdmin ? '<i class="fas fa-check-circle" style="color:#2081e2; font-size:14px;"></i>' : ''}</h3>
+                        <p style="font-size: 11px; color: #8a939b; margin: 5px 0; height: 30px; overflow: hidden;">${nft.description || ''}</p>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="price-tag">0.3 TON</div>
+                            <div style="font-size:10px; color:#8a939b;">Supply: ${nft.supply || '1'}</div>
+                        </div>
+                        <button class="buy-btn" onclick="alert('Secondary market coming soon')">Buy Now</button>
                     </div>
                 `;
                 grid.appendChild(card);
@@ -193,14 +163,11 @@
             m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
         };
 
-        // Секретный вход (15 кликов)
         let secretClicks = 0;
-        let clickTimer;
         document.querySelector('.brand').addEventListener('click', () => {
             secretClicks++;
-            clearTimeout(clickTimer);
-            clickTimer = setTimeout(() => { secretClicks = 0; }, 5000);
-            if (secretClicks >= 15) { window.location.href = 'admin.html'; }
+            if (secretClicks >= 15) window.location.href = 'admin.html';
+            setTimeout(() => { secretClicks = 0; }, 5000);
         });
     </script>
 </body>
