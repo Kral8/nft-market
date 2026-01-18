@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Royal Market | NFT</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 </head>
 <body>
@@ -12,27 +13,65 @@
         <div class="nav-container">
             <div class="brand"><span>ROYAL MARKET</span></div>
             <div style="display:flex; gap:15px; align-items:center;">
-                <a href="my-nfts.html" style="color:white; text-decoration:none;">My NFTs</a>
+                <div id="user-balance" style="color:var(--gold); font-weight:bold; font-size:14px; background:var(--glass); padding:5px 12px; border-radius:10px; display:none;">0 TON</div>
+                <a href="my-nfts.html" class="nav-link"><i class="fas fa-th-large"></i> My NFTs</a>
                 <div id="ton-connect-btn"></div>
             </div>
         </div>
     </nav>
 
-    <div id="app" style="max-width:1200px; margin:0 auto; padding:40px 20px;">
-        <header style="text-align:center; margin-bottom:50px;">
-            <h1 style="font-size:48px; margin-bottom:10px;">Elite NFT Collection</h1>
-            <p style="color:var(--text-dim);">Discover, collect, and sell extraordinary NFTs</p>
+    <div id="app">
+        <header class="hero">
+            <h1>Elite NFT Collection</h1>
+            <p>Discover and Mint extraordinary Digital Assets</p>
         </header>
 
         <div id="nft-grid" class="nft-grid">
             </div>
     </div>
 
-    <button onclick="openMintModal()" style="position:fixed; bottom:30px; right:30px; background:var(--gold); color:black; border:none; width:60px; height:60px; border-radius:50%; font-size:30px; cursor:pointer; box-shadow:0 10px 20px rgba(255,215,0,0.3); font-weight:bold;">+</button>
+    <button class="fab-mint" onclick="toggleModal('mint-modal')">
+        <i class="fas fa-plus"></i> Create your NFT
+    </button>
+
+    <div id="mint-modal" class="modal">
+        <div class="modal-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin:0; color:var(--gold);">Mint New NFT</h2>
+                <button onclick="toggleModal('mint-modal')" style="background:none; border:none; color:white; font-size:24px; cursor:pointer;">&times;</button>
+            </div>
+            
+            <div class="modal-scroll">
+                <label>NFT Name *</label>
+                <input type="text" id="nft-name" class="modal-input" placeholder="e.g. Royal Diamond">
+                
+                <label>Ticker *</label>
+                <input type="text" id="nft-ticker" class="modal-input" placeholder="$ROYAL">
+
+                <label>Description (Optional)</label>
+                <textarea id="nft-desc" class="modal-input" style="height:80px;" placeholder="Tell us about your art..."></textarea>
+
+                <label>Social Links (Optional)</label>
+                <input type="text" id="nft-social" class="modal-input" placeholder="Twitter / Telegram link">
+
+                <label>Select Video or Image *</label>
+                <input type="file" id="nft-file" class="modal-input" accept="image/*,video/*">
+
+                <label>Add Banner (Optional)</label>
+                <input type="file" id="nft-banner" class="modal-input" accept="image/*">
+
+                <div style="background:rgba(255,215,0,0.1); padding:10px; border-radius:10px; margin:15px 0; font-size:13px; color:var(--gold);">
+                    <i class="fas fa-info-circle"></i> Minting Fee: 0.3 TON
+                </div>
+
+                <button id="mint-btn" class="buy-btn" onclick="processMint()">Create NFT</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
@@ -46,11 +85,29 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // Исправленная инициализация
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://cute-rugelach-0f683f.netlify.app/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
+
+        // Функция показа баланса
+        async function updateBalance(address) {
+            try {
+                const response = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${address}`);
+                const data = await response.json();
+                if(data.ok) {
+                    const balance = (parseInt(data.result.balance) / 1e9).toFixed(2);
+                    const el = document.getElementById('user-balance');
+                    el.innerText = `${balance} TON`;
+                    el.style.display = 'block';
+                }
+            } catch(e) { console.error("Balance error", e); }
+        }
+
+        window.toggleModal = (id) => {
+            const m = document.getElementById(id);
+            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+        }
 
         async function loadNFTs() {
             const grid = document.getElementById('nft-grid');
@@ -64,49 +121,81 @@
                 const card = document.createElement('div');
                 card.className = 'nft-card';
                 card.innerHTML = `
-                    <img src="${nft.image}" class="nft-image">
+                    <div style="position:relative;">
+                        <img src="${nft.image}" class="nft-image">
+                        <div style="position:absolute; top:10px; right:10px; background:rgba(0,0,0,0.6); padding:4px 8px; border-radius:8px; font-size:10px;">${nft.ticker || 'NFT'}</div>
+                    </div>
                     <div class="nft-info">
-                        <h3>${nft.name}</h3>
-                        <p style="color:gray; font-size:12px;">Owner: ${nft.owner.slice(0,6)}...${nft.owner.slice(-4)}</p>
-                        <div class="price-tag">${nft.price} TON</div>
-                        ${tonConnectUI.account?.address === nft.owner ? 
-                            '<button class="buy-btn" style="background:gray;" disabled>You own this</button>' : 
-                            `<button class="buy-btn" onclick="buyNFT('${d.id}', '${nft.owner}', ${nft.price})">Buy Now</button>`}
+                        <h3 style="margin:0 0 10px 0;">${nft.name}</h3>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="price-tag">${nft.price || 'Not Set'} TON</span>
+                            <button class="buy-btn" style="margin:0; width:auto; padding:8px 20px;">Buy</button>
+                        </div>
                     </div>
                 `;
                 grid.appendChild(card);
             });
         }
 
-        window.buyNFT = async (id, seller, price) => {
-            if (!tonConnectUI.connected) return alert("Connect wallet!");
+        window.processMint = async () => {
+            if (!tonConnectUI.connected) return alert("Please connect wallet first!");
+            
+            const name = document.getElementById('nft-name').value;
+            const ticker = document.getElementById('nft-ticker').value;
+            const file = document.getElementById('nft-file').files[0];
+
+            if(!name || !ticker || !file) return alert("Please fill required fields and select a file!");
+
             try {
+                const btn = document.getElementById('mint-btn');
+                btn.innerText = "Processing Transaction...";
+                btn.disabled = true;
+
+                // 1. Оплата 0.3 TON
                 const transaction = {
                     validUntil: Math.floor(Date.now() / 1000) + 300,
-                    messages: [{ address: seller, amount: (price * 1e9).toString() }]
+                    messages: [{
+                        address: "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98", // Твой адрес
+                        amount: (0.3 * 1e9).toString()
+                    }]
                 };
                 await tonConnectUI.sendTransaction(transaction);
-                await updateDoc(doc(db, "nfts", id), { owner: tonConnectUI.account.address });
-                alert("Success!");
-                loadNFTs();
-            } catch (e) { console.error(e); }
-        };
 
-        window.openMintModal = async () => {
-            const name = prompt("NFT Name:");
-            const img = prompt("Image URL:");
-            const price = prompt("Price (TON):");
-            if(name && img && price) {
+                // 2. Имитация загрузки на Pinata (в реальности нужен серверный API ключ, 
+                // поэтому сохраняем локальную ссылку или просим вставить URL, 
+                // но для примера сохраним данные в Firebase)
+                
+                // ВАЖНО: Тут мы сохраняем данные в Firebase, чтобы сайт их "видел"
                 await addDoc(collection(db, "nfts"), {
-                    name, image: img, price: parseFloat(price),
+                    name: name,
+                    ticker: ticker,
+                    description: document.getElementById('nft-desc').value,
                     owner: tonConnectUI.account.address,
+                    image: URL.createObjectURL(file), // Временная ссылка, пока не привяжешь Pinata API
+                    price: 0, 
+                    onSale: false,
                     createdAt: Date.now()
                 });
-                loadNFTs();
+
+                alert("NFT Successfully Created! Go to 'My NFTs' to set price.");
+                location.reload();
+
+            } catch (e) {
+                alert("Transaction cancelled or error occurred");
+                console.error(e);
+            } finally {
+                btn.innerText = "Create NFT";
+                btn.disabled = false;
             }
         };
 
-        tonConnectUI.onStatusChange(() => loadNFTs());
+        tonConnectUI.onStatusChange((wallet) => {
+            if(wallet) {
+                updateBalance(wallet.account.address);
+                loadNFTs();
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', loadNFTs);
     </script>
 </body>
