@@ -16,8 +16,25 @@ const db = getFirestore(app);
 
 /* ================= TON ================= */
 const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-    manifestUrl: window.location.origin + '/tonconnect-manifest.json',
-    buttonRootId: 'ton-connect-btn'
+  manifestUrl: "https://cute-rugelach-0f683f.netlify.app/tonconnect-manifest.json",
+  buttonRootId: "connect-wallet"
+});
+
+window.connectWallet = async () => {
+  try {
+    await tonConnectUI.openModal();
+  } catch (e) {
+    alert("Wallet connection error");
+    console.error(e);
+  }
+};
+
+tonConnectUI.onStatusChange(wallet => {
+  if (wallet) {
+    console.log("Connected:", wallet.account.address);
+    document.getElementById("wallet-address").innerText =
+      wallet.account.address.slice(0, 6) + "..." + wallet.account.address.slice(-4);
+  }
 });
 
 /* ================= GLOBAL ================= */
