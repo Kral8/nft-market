@@ -262,13 +262,12 @@
             </div>
         </div>
 
-        <!-- Фильтры -->
         <div class="filters">
-            <button class="filter-btn active" onclick="filterNFTs('all')">All</button>
-            <button class="filter-btn" onclick="filterNFTs('newest')">Newest</button>
-            <button class="filter-btn" onclick="filterNFTs('lowest')">Lowest Price</button>
-            <button class="filter-btn" onclick="filterNFTs('highest')">Highest Price</button>
-        </div>
+  <button class="filter-btn active" onclick="applyFilter('all', this)">All</button>
+  <button class="filter-btn" onclick="applyFilter('featured', this)">⭐ Featured</button>
+  <button class="filter-btn" onclick="applyFilter('new', this)">🆕 New</button>
+  <button class="filter-btn" onclick="applyFilter('sale', this)">💰 For Sale</button>
+</div>
 
         <!-- Сетка NFT -->
         <div class="nft-grid" id="nft-grid">
