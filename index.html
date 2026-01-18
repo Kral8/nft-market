@@ -153,53 +153,43 @@
     document.getElementById('display-symbol').innerText = netConfig[net].symbol;
     document.getElementById('fee-display').innerText = `Fee: ${netConfig[net].fee} ${netConfig[net].symbol}`;
     
-    // Показываем блок инфо, если он был скрыт
-    document.getElementById('active-wallet-info').style.display = 'flex';
-
     try {
         if (net === 'ton') {
-            // Если TON - открываем модалку TON
+            // Открываем стандартное окно TON (Tonkeeper, MyTonWallet и т.д.)
             await tonConnectUI.openModal();
         } 
         else if (net === 'solana') {
-            // Если Solana - принудительно дергаем Phantom
-            if (window.solana) {
-                await window.solana.connect({ onlyIfTrusted: false }); // false заставляет окно всплыть
-                console.log("Solana connected:", window.solana.publicKey.toString());
+            // Проверяем OKX или Phantom для Solana
+            const solanaProvider = window.okxwallet?.solana || window.solana;
+            if (solanaProvider) {
+                await solanaProvider.connect();
+                console.log("Solana connected via:", solanaProvider.isOKXWallet ? "OKX" : "Phantom");
             } else {
-                alert("Phantom wallet not found! Please install it.");
-                window.open("https://phantom.app/", "_blank");
+                alert("Solana wallet (Phantom or OKX) not found!");
+                window.open("https://www.okx.com/web3", "_blank");
             }
         } 
         else if (net === 'bsc' || net === 'polygon') {
-            // Если EVM (BSC/Polygon) - дергаем MetaMask
-            if (window.ethereum) {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
-                // Принудительно просим сменить сеть
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: netConfig[net].hexId }],
-                    });
-                } catch (switchError) {
-                    // Если сети нет в кошельке, можно добавить код для добавления сети, 
-                    // но обычно MetaMask сам предлагает это сделать.
-                    console.error("Could not switch network", switchError);
-                }
+            // Проверяем OKX или MetaMask для EVM сетей
+            const ethProvider = window.okxwallet || window.ethereum;
+            if (ethProvider) {
+                const accounts = await ethProvider.request({ method: 'eth_requestAccounts' });
+                // Переключаем сеть
+                await ethProvider.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: netConfig[net].hexId }],
+                });
             } else {
-                alert("MetaMask not found!");
+                alert("EVM wallet (MetaMask or OKX) not found!");
             }
         }
         
-        // После выбора сразу обновляем баланс именно этой сети
-        setTimeout(() => updateBalance(), 500); 
-
+        document.getElementById('active-wallet-info').style.display = 'flex';
+        updateBalance();
     } catch (e) {
-        console.error("Connection failed", e);
+        console.error("Connection declined", e);
     }
 };
-
         async function connectSelectedWallet(net) {
             try {
                 if ((net === 'bsc' || net === 'polygon') && window.ethereum) {
