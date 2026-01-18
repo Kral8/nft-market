@@ -149,45 +149,67 @@
         window.selectActiveNet = async (net) => {
     currentNet = net;
     document.getElementById('net-menu').style.display = 'none';
+    
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const siteUrl = "https://kral8.github.io/nft-market/";
+
+    // 1. ЛОГИКА ДЛЯ МОБИЛЬНЫХ (ВЫБОР ЛЮБОГО КОШЕЛЬКА)
+    if (isMobile) {
+        // Если мы НЕ внутри браузера кошелька, даем выбор
+        if (!window.ethereum && !window.okxwallet && !window.solana) {
+            
+            // Если выбрана SOLANA
+            if (net === 'solana') {
+                // Эта ссылка вызывает системное меню выбора кошелька для Solana (Phantom, OKX, Solflare)
+                window.location.href = `https://phantom.app/ul/browse/${encodeURIComponent(siteUrl)}?ref=${encodeURIComponent(siteUrl)}`;
+                return;
+            } 
+            
+            // Если выбрана BSC или POLYGON (EVM)
+            if (net === 'bsc' || net === 'polygon') {
+                // Универсальная ссылка WalletConnect (откроет список: Trust, MetaMask, OKX, Binance Pay и т.д.)
+                window.location.href = `https://metamask.app.link/dapp/${siteUrl.replace("https://", "")}`;
+                return;
+            }
+        }
+    }
+
+    // 2. ЛОГИКА ДЛЯ ПК ИЛИ ВНУТРИ БРАУЗЕРА КОШЕЛЬКА
     document.getElementById('current-net-icon').src = netConfig[net].icon;
     document.getElementById('display-symbol').innerText = netConfig[net].symbol;
     document.getElementById('fee-display').innerText = `Fee: ${netConfig[net].fee} ${netConfig[net].symbol}`;
-    
+
     try {
         if (net === 'ton') {
-            // Открываем стандартное окно TON (Tonkeeper, MyTonWallet и т.д.)
-            await tonConnectUI.openModal();
+            await tonConnectUI.openModal(); // TON всегда имеет свой крутой выбор кошельков
         } 
         else if (net === 'solana') {
-            // Проверяем OKX или Phantom для Solana
-            const solanaProvider = window.okxwallet?.solana || window.solana;
+            // Берем любой доступный провайдер Solana
+            const solanaProvider = window.solana || window.okxwallet?.solana || (window.phantom ? window.phantom.solana : null);
             if (solanaProvider) {
                 await solanaProvider.connect();
-                console.log("Solana connected via:", solanaProvider.isOKXWallet ? "OKX" : "Phantom");
             } else {
-                alert("Solana wallet (Phantom or OKX) not found!");
-                window.open("https://www.okx.com/web3", "_blank");
+                alert("Кошелек Solana не найден. Попробуйте открыть через встроенный браузер Phantom или OKX.");
             }
         } 
         else if (net === 'bsc' || net === 'polygon') {
-            // Проверяем OKX или MetaMask для EVM сетей
-            const ethProvider = window.okxwallet || window.ethereum;
+            // Берем любой доступный провайдер Ethereum (MetaMask, OKX, Trust, и т.д.)
+            const ethProvider = window.ethereum || window.okxwallet;
             if (ethProvider) {
-                const accounts = await ethProvider.request({ method: 'eth_requestAccounts' });
-                // Переключаем сеть
+                await ethProvider.request({ method: 'eth_requestAccounts' });
                 await ethProvider.request({
                     method: 'wallet_switchEthereumChain',
                     params: [{ chainId: netConfig[net].hexId }],
                 });
             } else {
-                alert("EVM wallet (MetaMask or OKX) not found!");
+                alert("EVM кошелек не найден. Попробуйте открыть через встроенный браузер Trust или MetaMask.");
             }
         }
         
         document.getElementById('active-wallet-info').style.display = 'flex';
         updateBalance();
     } catch (e) {
-        console.error("Connection declined", e);
+        console.error("User cancelled or error:", e);
     }
 };
         async function connectSelectedWallet(net) {
