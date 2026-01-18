@@ -58,16 +58,26 @@
         const db = getFirestore(app);
 
         // Простая проверка пароля (сделай свой)
-        window.checkPass = () => {
-            const pass = document.getElementById('admin-pass').value;
-            if(pass === "1234") { // СМЕНИ ЭТОТ ПАРОЛЬ!
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('admin-content').style.display = 'block';
-                loadNFTs();
-            } else {
-                alert("Wrong password!");
-            }
-        };
+        window.checkPass = async () => {
+    const enteredPass = document.getElementById('admin-pass').value;
+    
+    // Стучимся в Firebase: коллекция settings, документ admin
+    const adminDoc = await getDoc(doc(db, "settings", "admin"));
+    
+    if (adminDoc.exists()) {
+        const correctPass = adminDoc.data().password; // Это то самое поле, которое ты сейчас создал
+        
+        if (enteredPass === correctPass) {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            loadNFTs();
+        } else {
+            alert("Неверный пароль!");
+        }
+    } else {
+        alert("Ошибка: Документ с паролем не найден в базе!");
+    }
+};
 
         // Сохранение JWT (в локалсторедж браузера)
         window.saveJWT = () => {
