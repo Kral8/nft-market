@@ -1,219 +1,113 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Royal NFT Market</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Telegram -->
-
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-  <!-- TON Connect -->
-
- <script src="https://unpkg.com/@tonconnect/ui@2/dist/tonconnect-ui.min.js"></script>
-
-  <!-- Firebase -->
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-    /* ================= FIREBASE CONFIG ================= */
-    const firebaseConfig = {
-  apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
-  authDomain: "royal-nft.firebaseapp.com",
-  projectId: "royal-nft",
-  storageBucket: "royal-nft.firebasestorage.app",
-  messagingSenderId: "616712040035",
-  appId: "1:616712040035:web:59e449b2215e4126951256",
-  measurementId: "G-EXDFRJ78MX"
-};
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    /* ================= CONSTANTS ================= */
-    const MARKET_OWNER = "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98";
-    const MINT_FEE = 0.3; // TON
-
-    /* ================= TON CONNECT ================= */
-    window.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-      manifestUrl: "./tonconnect-manifest.json"
-    });
-
-    window.CURRENT_USER = null;
-
-    document.getElementById?.('connectBtn');
-
-    window.connectWallet = async function () {
-      await tonConnectUI.openModal();
-    }
-
-    tonConnectUI.onStatusChange(wallet => {
-      if (wallet) {
-        CURRENT_USER = wallet.account.address;
-        document.getElementById('wallet').innerText = CURRENT_USER.slice(0,6) + "...";
-      }
-    });
-
-    /* ================= NFT LOAD ================= */
-    window.ALL_NFTS = [];
-
-    async function loadNFTs() {
-      const snap = await getDocs(collection(db, 'nfts'));
-      ALL_NFTS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      applyFilter('all');
-    }
-
-    window.applyFilter = function(type) {
-      let list = [...ALL_NFTS];
-      if (type === 'featured') list = list.filter(n => n.featured);
-      if (type === 'sale') list = list.filter(n => n.listed && !n.sold);
-      if (type === 'new') list.sort((a,b)=>b.createdAt-a.createdAt);
-      renderNFTs(list);
-    }
-
-    function renderNFTs(nfts) {
-      const grid = document.getElementById('nft-grid');
-      grid.innerHTML = '';
-      nfts.forEach(nft => {
-        const div = document.createElement('div');
-        div.className = 'card';
-        div.innerHTML = `
-          <img src="${nft.image}" />
-          <h3>${nft.name}</h3>
-          <p>${nft.description || ''}</p>
-          <small>${(nft.tags||[]).join(', ')}</small>
-          ${nft.listed && !nft.sold ? `<button onclick="buyNFT('${nft.id}','${nft.owner}',${nft.price})">Buy ${nft.price} TON</button>` : '<span>Not for sale</span>'}
-        `;
-        grid.appendChild(div);
-      });
-    }
-
-    /* ================= BUY ================= */
-    window.buyNFT = async function(id, seller, price) {
-      if (!tonConnectUI.connected) return alert('Connect wallet first');
-
-      await tonConnectUI.sendTransaction({
-        validUntil: Math.floor(Date.now()/1000)+300,
-        messages: [{ address: seller, amount: (price*1e9).toString() }]
-      });
-
-      await updateDoc(doc(db,'nfts',id),{
-        owner: CURRENT_USER,
-        sold: true,
-        listed: false,
-        soldAt: Date.now()
-      });
-
-      loadNFTs();
-    }
-
-    /* ================= IMAGE UPLOAD ================= */
-    window.UPLOADED_IMAGE = null;
-    window.handleImage = function(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        UPLOADED_IMAGE = reader.result;
-        document.getElementById('preview').src = reader.result;
-      }
-      reader.readAsDataURL(file);
-    }
-
-    /* ================= MINT STEP 1 ================= */
-    window.mintNFT = async function() {
-      if (!tonConnectUI.connected) return alert('Connect wallet');
-
-      await tonConnectUI.sendTransaction({
-        validUntil: Math.floor(Date.now()/1000)+300,
-        messages: [{ address: MARKET_OWNER, amount: (MINT_FEE*1e9).toString() }]
-      });
-
-      const name = document.getElementById('n-name').value;
-      const desc = document.getElementById('n-desc').value;
-      const tags = document.getElementById('n-tags').value.split(',');
-
-      const docRef = await addDoc(collection(db,'nfts'),{
-        name,
-        description: desc,
-        tags,
-        image: UPLOADED_IMAGE,
-        owner: CURRENT_USER,
-        creator: CURRENT_USER,
-        listed: false,
-        sold: false,
-        featured: false,
-        createdAt: Date.now()
-      });
-
-      window.LAST_NFT = docRef.id;
-      document.getElementById('priceBlock').style.display='block';
-    }
-
-    /* ================= SET PRICE ================= */
-    window.setPrice = async function() {
-      const price = Number(document.getElementById('set-price').value);
-      await updateDoc(doc(db,'nfts',LAST_NFT),{
-        price,
-        listed:true
-      });
-      loadNFTs();
-      alert('NFT published');
-    }
-
-    window.onload = loadNFTs;
-  </script>
-
-  <style>
-    body{background:#0b0b14;color:#fff;font-family:sans-serif;margin:0}
-    header{display:flex;justify-content:space-between;align-items:center;padding:15px;background:#111}
-    button{padding:10px 15px;border:none;border-radius:6px;background:#6a4cff;color:#fff}
-    .filters{display:flex;gap:10px;padding:15px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:15px;padding:15px}
-    .card{background:#161625;padding:10px;border-radius:10px;text-align:center}
-    .card img{width:100%;border-radius:10px}
-    input,textarea{width:100%;padding:8px;margin:5px 0;border-radius:6px;border:none}
-  </style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Royal Market | NFT</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 </head>
 <body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="brand"><span>ROYAL MARKET</span></div>
+            <div style="display:flex; gap:15px; align-items:center;">
+                <a href="my-nfts.html" style="color:white; text-decoration:none;">My NFTs</a>
+                <div id="ton-connect-btn"></div>
+            </div>
+        </div>
+    </nav>
 
-<header>
-  <img src="logo.png" height="32" />
-  <button onclick="connectWallet()">Connect Wallet</button>
-  <span id="wallet"></span>
-</header>
+    <div id="app" style="max-width:1200px; margin:0 auto; padding:40px 20px;">
+        <header style="text-align:center; margin-bottom:50px;">
+            <h1 style="font-size:48px; margin-bottom:10px;">Elite NFT Collection</h1>
+            <p style="color:var(--text-dim);">Discover, collect, and sell extraordinary NFTs</p>
+        </header>
 
-<div class="filters">
-  <button onclick="applyFilter('all')">All</button>
-  <button onclick="applyFilter('featured')">⭐ Featured</button>
-  <button onclick="applyFilter('new')">🆕 New</button>
-  <button onclick="applyFilter('sale')">💰 For Sale</button>
-</div>
+        <div id="nft-grid" class="nft-grid">
+            </div>
+    </div>
 
-<div id="nft-grid" class="grid"></div>
+    <button onclick="openMintModal()" style="position:fixed; bottom:30px; right:30px; background:var(--gold); color:black; border:none; width:60px; height:60px; border-radius:50%; font-size:30px; cursor:pointer; box-shadow:0 10px 20px rgba(255,215,0,0.3); font-weight:bold;">+</button>
 
-<hr />
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-<div style="padding:15px">
-  <h2>Create NFT</h2>
-  <input id="n-name" placeholder="NFT Name" />
-  <textarea id="n-desc" placeholder="Description"></textarea>
-  <input id="n-tags" placeholder="tags: art,crypto" />
-  <input type="file" accept="image/*" onchange="handleImage(event)" />
-  <img id="preview" style="width:100px;border-radius:8px" />
-  <button onclick="mintNFT()">Mint NFT (0.3 TON)</button>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
+            authDomain: "royal-nft.firebaseapp.com",
+            projectId: "royal-nft",
+            storageBucket: "royal-nft.firebasestorage.app",
+            messagingSenderId: "616712040035",
+            appId: "1:616712040035:web:59e449b2215e4126951256"
+        };
 
-  <div id="priceBlock" style="display:none">
-    <h3>Set Price</h3>
-    <input id="set-price" type="number" placeholder="Price TON" />
-    <button onclick="setPrice()">Publish</button>
-  </div>
-</div>
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
+        // Исправленная инициализация
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://cute-rugelach-0f683f.netlify.app/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-btn'
+        });
+
+        async function loadNFTs() {
+            const grid = document.getElementById('nft-grid');
+            grid.innerHTML = '<div class="loader"></div>';
+            
+            const snap = await getDocs(collection(db, "nfts"));
+            grid.innerHTML = '';
+            
+            snap.forEach(d => {
+                const nft = d.data();
+                const card = document.createElement('div');
+                card.className = 'nft-card';
+                card.innerHTML = `
+                    <img src="${nft.image}" class="nft-image">
+                    <div class="nft-info">
+                        <h3>${nft.name}</h3>
+                        <p style="color:gray; font-size:12px;">Owner: ${nft.owner.slice(0,6)}...${nft.owner.slice(-4)}</p>
+                        <div class="price-tag">${nft.price} TON</div>
+                        ${tonConnectUI.account?.address === nft.owner ? 
+                            '<button class="buy-btn" style="background:gray;" disabled>You own this</button>' : 
+                            `<button class="buy-btn" onclick="buyNFT('${d.id}', '${nft.owner}', ${nft.price})">Buy Now</button>`}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        window.buyNFT = async (id, seller, price) => {
+            if (!tonConnectUI.connected) return alert("Connect wallet!");
+            try {
+                const transaction = {
+                    validUntil: Math.floor(Date.now() / 1000) + 300,
+                    messages: [{ address: seller, amount: (price * 1e9).toString() }]
+                };
+                await tonConnectUI.sendTransaction(transaction);
+                await updateDoc(doc(db, "nfts", id), { owner: tonConnectUI.account.address });
+                alert("Success!");
+                loadNFTs();
+            } catch (e) { console.error(e); }
+        };
+
+        window.openMintModal = async () => {
+            const name = prompt("NFT Name:");
+            const img = prompt("Image URL:");
+            const price = prompt("Price (TON):");
+            if(name && img && price) {
+                await addDoc(collection(db, "nfts"), {
+                    name, image: img, price: parseFloat(price),
+                    owner: tonConnectUI.account.address,
+                    createdAt: Date.now()
+                });
+                loadNFTs();
+            }
+        };
+
+        tonConnectUI.onStatusChange(() => loadNFTs());
+        document.addEventListener('DOMContentLoaded', loadNFTs);
+    </script>
 </body>
 </html>
