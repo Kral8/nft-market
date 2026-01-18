@@ -25,7 +25,7 @@
     <div id="app" style="max-width:1200px; margin:0 auto; padding:20px;">
         <header class="hero">
             <h1 class="glitch-text">Elite NFT Market</h1>
-            <p>Real-time TON Blockchain Marketplace</p>
+            <p>Real-time Multi-chain Marketplace</p>
         </header>
 
         <div id="nft-grid" class="nft-grid">
@@ -43,6 +43,23 @@
                 <button onclick="toggleModal('mint-modal')" class="close-btn">&times;</button>
             </div>
             <div class="modal-scroll">
+                <label>Select Network</label>
+                <div class="network-selector" style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding: 5px 0;">
+                    <div class="net-opt active" onclick="setNet('ton', this)">
+                        <img src="https://cryptologos.cc/logos/toncoin-ton-logo.png" width="18"> TON
+                    </div>
+                    <div class="net-opt" onclick="setNet('solana', this)">
+                        <img src="https://cryptologos.cc/logos/solana-sol-logo.png" width="18"> SOL
+                    </div>
+                    <div class="net-opt" onclick="setNet('bsc', this)">
+                        <img src="https://cryptologos.cc/logos/binance-coin-bnb-logo.png" width="18"> BSC
+                    </div>
+                    <div class="net-opt" onclick="setNet('polygon', this)">
+                        <img src="https://cryptologos.cc/logos/polygon-matic-logo.png" width="18"> POLY
+                    </div>
+                </div>
+                <input type="hidden" id="selected-net" value="ton">
+
                 <label>NFT Name</label>
                 <input type="text" id="nft-name" class="modal-input" placeholder="e.g. Ton Moon">
                 <label>Ticker</label>
@@ -51,7 +68,7 @@
                 <textarea id="nft-desc" class="modal-input" placeholder="About your project..."></textarea>
                 <label>Image</label>
                 <input type="file" id="nft-file" class="modal-input" accept="image/*">
-                <div class="fee-info">Fee: 0.3 TON</div>
+                <div class="fee-info" id="fee-display">Fee: 0.3 TON</div>
                 <button id="mint-btn" class="buy-btn" onclick="processMint()">Launch NFT</button>
             </div>
         </div>
@@ -77,7 +94,19 @@
             buttonRootId: 'ton-connect-btn'
         });
 
-        // Функция создания уведомления
+        // ЛОГИКА СЕТЕЙ
+        window.setNet = (net, el) => {
+            document.getElementById('selected-net').value = net;
+            document.querySelectorAll('.net-opt').forEach(opt => opt.classList.remove('active'));
+            el.classList.add('active');
+            
+            const feeDisplay = document.getElementById('fee-display');
+            if(net === 'ton') feeDisplay.innerText = "Fee: 0.3 TON";
+            if(net === 'solana') feeDisplay.innerText = "Fee: 0.02 SOL";
+            if(net === 'bsc') feeDisplay.innerText = "Fee: 0.005 BNB";
+            if(net === 'polygon') feeDisplay.innerText = "Fee: 1 POL";
+        };
+
         window.showToast = (msg, icon = '🚀') => {
             const feed = document.getElementById('activity-feed');
             const toast = document.createElement('div');
@@ -87,7 +116,6 @@
             setTimeout(() => toast.remove(), 5000);
         };
 
-        // Обновление баланса в навбаре
         async function updateBalanceDisplay(address) {
             try {
                 const response = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${address}`);
@@ -101,7 +129,6 @@
             } catch(e) {}
         }
 
-        // Слушаем изменения в базе в реальном времени
         const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
         onSnapshot(q, (snapshot) => {
             const grid = document.getElementById('nft-grid');
@@ -129,34 +156,26 @@
 
         window.buyNFT = async (id, seller, price) => {
             if (!tonConnectUI.connected) return tonConnectUI.openModal();
-            
             const currentUser = tonConnectUI.account.address;
             if (currentUser === seller) return showToast("You already own this", "💡");
 
             try {
-                // ПРОВЕРКА БАЛАНСА
                 const response = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${currentUser}`);
                 const data = await response.json();
-                
                 if (data.ok) {
                     const userBalance = parseInt(data.result.balance);
                     const nftPrice = parseFloat(price) * 1e9;
-                    const feeReserve = 0.05 * 1e9; // 0.05 TON на газ
-
-                    if (userBalance < (nftPrice + feeReserve)) {
-                        alert("Insufficient funds! You need more TON for the price + network fee.");
+                    if (userBalance < (nftPrice + 0.05 * 1e9)) {
+                        alert("Insufficient funds for price + fee!");
                         return;
                     }
                 }
-
                 const tx = {
                     validUntil: Math.floor(Date.now() / 1000) + 300,
                     messages: [{ address: seller, amount: (price * 1e9).toString() }]
                 };
-                
                 showToast("Check your wallet...", "📲");
                 const result = await tonConnectUI.sendTransaction(tx);
-                
                 if (result) {
                     await updateDoc(doc(db, "nfts", id), { owner: currentUser });
                     showToast("NFT Purchased!", "💎");
@@ -168,6 +187,14 @@
         };
 
         window.processMint = async () => {
+            const net = document.getElementById('selected-net').value;
+            
+            // Если выбрана не TON, пока просим использовать TON (подключим позже)
+            if(net !== 'ton') {
+                alert(`Network ${net.toUpperCase()} integration coming soon! Please use TON for now.`);
+                return;
+            }
+
             if (!tonConnectUI.connected) return tonConnectUI.openModal();
             const name = document.getElementById('nft-name').value;
             const ticker = document.getElementById('nft-ticker').value;
@@ -185,7 +212,8 @@
                 await addDoc(collection(db, "nfts"), {
                     name, ticker, owner: tonConnectUI.account.address,
                     image: "https://purple-charming-hamster-277.mypinata.cloud/ipfs/QmXkH2eS98HS6BScHczcmVRF1234cr4UiSX6pQad8n72EE",
-                    price: 1, createdAt: Date.now()
+                    price: 1, createdAt: Date.now(),
+                    network: net
                 });
                 showToast("New NFT Launched!", "🔥");
                 toggleModal('mint-modal');
