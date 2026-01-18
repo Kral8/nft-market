@@ -50,15 +50,65 @@ body {
     border-radius: 12px !important;
 }
 
-/* Плашка баланса */
+/* Выпадающее меню выбора сети */
+.network-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
 .balance-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     background: linear-gradient(90deg, #1e293b, #0f172a);
-    padding: 6px 15px;
-    border-radius: 20px;
+    padding: 8px 15px;
+    border-radius: 15px;
     border: 1px solid var(--glass);
     color: var(--gold);
     font-weight: bold;
     font-family: monospace;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.balance-badge:hover {
+    border-color: var(--gold);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: #0d141c;
+    min-width: 200px;
+    box-shadow: 0px 8px 16px rgba(0,0,0,0.5);
+    z-index: 1001;
+    border-radius: 12px;
+    border: 1px solid var(--glass);
+    margin-top: 10px;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.net-item {
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.net-item img {
+    border-radius: 50%;
+}
+
+.net-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--gold);
 }
 
 /* Сетка и Карточки */
@@ -115,44 +165,6 @@ body {
 
 .buy-btn:active {
     transform: scale(0.95);
-}
-
-/* Выбор сети (Multi-chain Selector) */
-.network-selector {
-    scrollbar-width: none; /* Скрываем скроллбар в Firefox */
-    -ms-overflow-style: none; /* Скрываем скроллбар в IE */
-}
-
-.network-selector::-webkit-scrollbar {
-    display: none; /* Скрываем скроллбар в Chrome/Safari */
-}
-
-.net-opt {
-    background: var(--glass);
-    border: 1px solid var(--glass);
-    padding: 10px 18px;
-    border-radius: 15px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-    transition: 0.3s;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-dim);
-}
-
-.net-opt.active {
-    border-color: var(--gold);
-    background: rgba(255, 215, 0, 0.1);
-    color: var(--gold);
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
-}
-
-.net-opt:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text);
 }
 
 /* Кнопка создания (FAB) */
@@ -234,6 +246,36 @@ body {
     font-weight: bold;
 }
 
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(-100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    to { opacity: 0; transform: translateY(-20px); }
+}
+
 /* Живая лента (Toasts) */
 #activity-feed {
     position: fixed;
@@ -256,31 +298,6 @@ body {
     backdrop-filter: blur(5px);
 }
 
-/* Анимации */
-@keyframes slideIn {
-    from { transform: translateX(-100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes fadeOut {
-    to { opacity: 0; transform: translateY(-20px); }
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-.loader {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--glass);
-    border-top-color: var(--gold);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 20px auto;
-}
-
-/* Навигация */
 .nav-link {
     color: var(--text-dim);
     text-decoration: none;
@@ -291,69 +308,4 @@ body {
 
 .nav-link:hover {
     color: var(--gold);
-}
-.network-dropdown {
-    position: relative;
-    display: inline-block;
-}
-
-.dropdown-content {
-    display: none;
-    position: absolute;
-    right: 0;
-    background-color: #0d141c;
-    min-width: 180px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
-    z-index: 1001;
-    border-radius: 12px;
-    border: 1px solid var(--glass);
-    margin-top: 10px;
-    overflow: hidden;
-}
-
-.net-item {
-    color: white;
-    padding: 12px 16px;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: 0.2s;
-}
-
-.net-item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: var(--gold);
-}
-
-.balance-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--glass);
-    padding: 8px 15px;
-    border-radius: 15px;
-    border: 1px solid var(--glass);
-    transition: 0.3s;
-}
-
-.balance-badge:hover {
-    border-color: var(--gold);
-}
-.network-dropdown { position: relative; display: inline-block; }
-.dropdown-content {
-    display: none; position: absolute; right: 0; background-color: #0d141c;
-    min-width: 180px; box-shadow: 0px 8px 16px rgba(0,0,0,0.5); z-index: 1001;
-    border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); margin-top: 10px; overflow: hidden;
-}
-.net-item {
-    color: white; padding: 12px 16px; display: flex; align-items: center;
-    gap: 10px; cursor: pointer; font-size: 14px; transition: 0.2s;
-}
-.net-item:hover { background-color: rgba(255, 255, 255, 0.05); color: #ffd700; }
-.balance-badge {
-    display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05);
-    padding: 8px 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.05);
 }
