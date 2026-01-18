@@ -5,397 +5,110 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Royal NFT Market</title>
     <style>
-        body {
-            background: #04111d;
-            color: white;
-            font-family: 'Poppins', sans-serif;
-            padding: 20px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        
-        .container {
-            background: #18202a;
-            padding: 30px;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        h1 {
-            color: #ffd700;
-            text-align: center;
-            margin-top: 0;
-        }
-        
-        h3 {
-            color: white;
-            margin: 20px 0 10px 0;
-        }
-        
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 10px;
-            color: white;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        
-        button {
-            width: 100%;
-            padding: 14px;
-            background: #2081e2;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-            font-size: 16px;
-        }
-        
-        .warning {
-            background: rgba(255, 193, 7, 0.2);
-            border: 1px solid #ffc107;
-            color: #ffc107;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        
-        .success {
-            background: rgba(0, 176, 155, 0.2);
-            border: 1px solid #00b09b;
-            color: #00b09b;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        
-        .info-box {
-            background: rgba(255, 215, 0, 0.1);
-            border: 1px solid #ffd700;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 20px 0;
-        }
-        
-        .info-box ol {
-            margin: 10px 0;
-            padding-left: 20px;
-        }
-        
-        .info-box li {
-            margin-bottom: 8px;
-        }
-        
-        a {
-            color: #2081e2;
-            text-decoration: none;
-        }
-        
-        a:hover {
-            text-decoration: underline;
-        }
-        
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .btn-group button {
-            flex: 1;
-        }
+        body { background: #04111d; color: white; font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
+        .container { background: #18202a; padding: 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        h1 { color: #ffd700; text-align: center; }
+        .nft-item { background: #0d1117; padding: 15px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #30363d; }
+        .del-btn { background: #ff4757; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #0d1117; border: 1px solid #30363d; border-radius: 10px; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 14px; background: #2081e2; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .success-msg { color: #00b09b; text-align: center; margin: 10px 0; display: none; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>⚙️ Admin Panel</h1>
-        <p style="color: #8a939b; text-align: center;">Configure your NFT marketplace</p>
+        <h1>⚙️ Control Panel</h1>
         
-        <!-- Сообщение о режиме -->
-        <div id="mode-message" class="warning">
-            <strong>⚠️ Browser Mode</strong><br>
-            Settings saved locally in browser
+        <div id="login-section">
+            <h3>Admin Access</h3>
+            <input type="password" id="admin-pass" placeholder="Enter password">
+            <button onclick="checkPass()">Login</button>
         </div>
-        
-        <!-- Сообщения -->
-        <div id="message" style="display: none;"></div>
-        
-        <h3>Pinata JWT Setup</h3>
-        <input type="text" id="pinata-jwt" placeholder="Enter your Pinata JWT token">
-        <div class="btn-group">
-            <button onclick="saveJWT()">💾 Save JWT</button>
-            <button onclick="testJWT()" style="background: #ff9800;">🔍 Test JWT</button>
-        </div>
-        
-        <div class="info-box">
-            <p><strong>How to get Pinata JWT:</strong></p>
-            <ol>
-                <li>Go to <a href="https://pinata.cloud" target="_blank">pinata.cloud</a></li>
-                <li>Create account or login</li>
-                <li>Go to API Keys section</li>
-                <li>Click "New API Key"</li>
-                <li>Select permissions: <code>pinFileToIPFS</code></li>
-                <li>Copy the JWT token</li>
-                <li>Paste it above and save</li>
-            </ol>
-        </div>
-        
-        <h3>Current Configuration</h3>
-        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px;">
-            <p><strong>JWT Status:</strong> <span id="jwt-status">❌ Not configured</span></p>
-            <p><strong>Storage:</strong> <span id="storage-type">Local Storage</span></p>
-        </div>
-        
-        <div class="btn-group" style="margin-top: 20px;">
-            <button onclick="clearSettings()" style="background: #ff4757;">🗑️ Clear Settings</button>
-            <button onclick="window.location.href='index.html'" style="background: #6c757d;">← Marketplace</button>
+
+        <div id="admin-content" style="display: none;">
+            <div id="msg" class="success-msg">Action successful!</div>
+            
+            <h3>Pinata JWT Setup</h3>
+            <input type="text" id="pinata-jwt" placeholder="Pinata JWT Token">
+            <button onclick="saveJWT()" style="background: #ffd700; color: black;">Save JWT</button>
+
+            <h3 style="margin-top: 30px;">Manage Marketplace NFT</h3>
+            <div id="nft-list">
+                <p style="color: #8a939b;">Loading items...</p>
+            </div>
+            
+            <button onclick="window.location.href='index.html'" style="background: #6c757d; margin-top: 20px;">← Back to Market</button>
         </div>
     </div>
-    
-    <script>
-        // Проверяем, находимся ли в Telegram
-        const isTelegram = window.Telegram?.WebApp !== undefined;
-        
-        // Элементы DOM
-        const modeMessage = document.getElementById('mode-message');
-        const messageDiv = document.getElementById('message');
-        const jwtStatus = document.getElementById('jwt-status');
-        const storageType = document.getElementById('storage-type');
-        const jwtInput = document.getElementById('pinata-jwt');
-        
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', function() {
-            if (isTelegram) {
-                // Telegram режим
-                modeMessage.innerHTML = '<strong>✅ Telegram Mode</strong><br>Settings saved in CloudStorage';
-                modeMessage.className = 'success';
-                storageType.textContent = 'Telegram CloudStorage';
-                
-                // Инициализируем Telegram WebApp
-                const tg = window.Telegram.WebApp;
-                tg.expand();
-                tg.BackButton.show();
-                tg.BackButton.onClick(() => {
-                    window.location.href = 'index.html';
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBT0bsUtte387SIkm3N2hddlvEFSVhB9RU",
+            authDomain: "royal-nft.firebaseapp.com",
+            projectId: "royal-nft",
+            storageBucket: "royal-nft.firebasestorage.app",
+            messagingSenderId: "616712040035",
+            appId: "1:616712040035:web:59e449b2215e4126951256"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Простая проверка пароля (сделай свой)
+        window.checkPass = () => {
+            const pass = document.getElementById('admin-pass').value;
+            if(pass === "1234") { // СМЕНИ ЭТОТ ПАРОЛЬ!
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('admin-content').style.display = 'block';
+                loadNFTs();
+            } else {
+                alert("Wrong password!");
+            }
+        };
+
+        // Сохранение JWT (в локалсторедж браузера)
+        window.saveJWT = () => {
+            const jwt = document.getElementById('pinata-jwt').value;
+            localStorage.setItem('pinata_jwt', jwt);
+            showStatus();
+        };
+
+        function showStatus() {
+            const msg = document.getElementById('msg');
+            msg.style.display = 'block';
+            setTimeout(() => msg.style.display = 'none', 3000);
+        }
+
+        // Загрузка и удаление NFT
+        function loadNFTs() {
+            onSnapshot(collection(db, "nfts"), (snapshot) => {
+                const list = document.getElementById('nft-list');
+                list.innerHTML = '';
+                snapshot.forEach(d => {
+                    const nft = d.data();
+                    const item = document.createElement('div');
+                    item.className = 'nft-item';
+                    item.innerHTML = `
+                        <span>${nft.name}</span>
+                        <button class="del-btn" onclick="deleteNFT('${d.id}')">Delete</button>
+                    `;
+                    list.appendChild(item);
                 });
-                
-                // Загружаем настройки из CloudStorage
-                loadFromTelegram();
-            } else {
-                // Браузер режим
-                modeMessage.innerHTML = '<strong>⚠️ Browser Mode</strong><br>Settings saved locally in browser';
-                modeMessage.className = 'warning';
-                storageType.textContent = 'Browser Local Storage';
-                
-                // Загружаем настройки из LocalStorage
-                loadFromLocalStorage();
-            }
-            
-            checkJWTStatus();
-        });
-        
-        // ===== TELEGRAM ФУНКЦИИ =====
-        async function loadFromTelegram() {
-            try {
-                const tg = window.Telegram.WebApp;
-                if (tg?.CloudStorage) {
-                    const jwt = await tg.CloudStorage.getItem('pinata_jwt');
-                    if (jwt && jwt !== 'undefined') {
-                        jwtInput.value = jwt;
-                        showMessage('✅ Settings loaded from Telegram', 'success');
-                    }
-                }
-            } catch (e) {
-                console.log("Telegram storage not available, using fallback");
-            }
+            });
         }
+
+        window.deleteNFT = async (id) => {
+            if(confirm("Delete this NFT from market?")) {
+                await deleteDoc(doc(db, "nfts", id));
+                showStatus();
+            }
+        };
         
-        async function saveToTelegram(jwt) {
-            try {
-                const tg = window.Telegram.WebApp;
-                await tg.CloudStorage.setItem('pinata_jwt', jwt);
-                return true;
-            } catch (e) {
-                console.error("Telegram save error:", e);
-                return false;
-            }
-        }
-        
-        // ===== LOCAL STORAGE ФУНКЦИИ =====
-        function loadFromLocalStorage() {
-            try {
-                const jwt = localStorage.getItem('pinata_jwt');
-                if (jwt) {
-                    jwtInput.value = jwt;
-                    showMessage('✅ Settings loaded from browser', 'success');
-                }
-            } catch (e) {
-                console.error("Local storage error:", e);
-            }
-        }
-        
-        function saveToLocalStorage(jwt) {
-            try {
-                localStorage.setItem('pinata_jwt', jwt);
-                return true;
-            } catch (e) {
-                console.error("Local storage save error:", e);
-                return false;
-            }
-        }
-        
-        // ===== ОСНОВНЫЕ ФУНКЦИИ =====
-        async function saveJWT() {
-            const jwt = jwtInput.value.trim();
-            
-            if (!jwt) {
-                showMessage('❌ Please enter Pinata JWT', 'error');
-                return;
-            }
-            
-            // Проверяем формат JWT
-            const jwtParts = jwt.split('.');
-            if (jwtParts.length !== 3) {
-                showMessage('❌ Invalid JWT format. Should be: xxxx.yyyy.zzzz', 'error');
-                return;
-            }
-            
-            let saved = false;
-            
-            if (isTelegram) {
-                saved = await saveToTelegram(jwt);
-            } else {
-                saved = saveToLocalStorage(jwt);
-            }
-            
-            if (saved) {
-                showMessage('✅ JWT saved successfully!', 'success');
-                checkJWTStatus();
-                
-                // Маскируем JWT для безопасности
-                setTimeout(() => {
-                    if (jwtInput.value === jwt) {
-                        jwtInput.value = '•••••••••••••••••••••••••••••••';
-                    }
-                }, 1000);
-            } else {
-                showMessage('❌ Error saving JWT', 'error');
-            }
-        }
-        
-        async function testJWT() {
-            const jwt = jwtInput.value.trim();
-            
-            if (!jwt) {
-                showMessage('❌ Please enter JWT first', 'error');
-                return;
-            }
-            
-            showMessage('🔍 Testing connection to Pinata...', 'info');
-            
-            try {
-                const response = await fetch('https://api.pinata.cloud/data/testAuthentication', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${jwt}`
-                    }
-                });
-                
-                if (response.ok) {
-                    showMessage('✅ Pinata connection successful! JWT is valid.', 'success');
-                } else {
-                    const error = await response.text();
-                    showMessage(`❌ Pinata error: ${response.status}`, 'error');
-                    console.error("Pinata error:", error);
-                }
-            } catch (e) {
-                showMessage(`❌ Connection failed: ${e.message}`, 'error');
-            }
-        }
-        
-        function clearSettings() {
-            if (confirm('Are you sure you want to clear all settings?')) {
-                if (isTelegram && window.Telegram.WebApp.CloudStorage) {
-                    window.Telegram.WebApp.CloudStorage.removeItem('pinata_jwt');
-                }
-                
-                localStorage.removeItem('pinata_jwt');
-                jwtInput.value = '';
-                showMessage('✅ All settings cleared', 'success');
-                checkJWTStatus();
-            }
-        }
-        
-        function checkJWTStatus() {
-            let hasJWT = false;
-            
-            if (isTelegram) {
-                // Проверяем в Telegram
-                const tg = window.Telegram.WebApp;
-                if (tg?.CloudStorage) {
-                    tg.CloudStorage.getItem('pinata_jwt').then(jwt => {
-                        hasJWT = !!jwt && jwt !== 'undefined';
-                        updateStatusUI(hasJWT);
-                    }).catch(() => {
-                        // Если CloudStorage недоступен, проверяем LocalStorage
-                        hasJWT = !!localStorage.getItem('pinata_jwt');
-                        updateStatusUI(hasJWT);
-                    });
-                }
-            } else {
-                // Проверяем в LocalStorage
-                hasJWT = !!localStorage.getItem('pinata_jwt');
-                updateStatusUI(hasJWT);
-            }
-        }
-        
-        function updateStatusUI(hasJWT) {
-            if (hasJWT) {
-                jwtStatus.innerHTML = '✅ Configured';
-                jwtStatus.style.color = '#00b09b';
-            } else {
-                jwtStatus.innerHTML = '❌ Not configured';
-                jwtStatus.style.color = '#ff4757';
-            }
-        }
-        
-        function showMessage(text, type) {
-            messageDiv.textContent = text;
-            messageDiv.style.display = 'block';
-            
-            // Стили по типу
-            if (type === 'success') {
-                messageDiv.style.background = 'rgba(0, 176, 155, 0.2)';
-                messageDiv.style.border = '1px solid #00b09b';
-                messageDiv.style.color = '#00b09b';
-            } else if (type === 'error') {
-                messageDiv.style.background = 'rgba(255, 71, 87, 0.2)';
-                messageDiv.style.border = '1px solid #ff4757';
-                messageDiv.style.color = '#ff4757';
-            } else {
-                messageDiv.style.background = 'rgba(32, 129, 226, 0.2)';
-                messageDiv.style.border = '1px solid #2081e2';
-                messageDiv.style.color = '#2081e2';
-            }
-            
-            messageDiv.style.padding = '12px';
-            messageDiv.style.borderRadius = '8px';
-            messageDiv.style.margin = '15px 0';
-            messageDiv.style.textAlign = 'center';
-            
-            // Скрываем через 5 секунд
-            setTimeout(() => {
-                messageDiv.style.display = 'none';
-            }, 5000);
-        }
+        // Загрузка JWT если есть
+        document.getElementById('pinata-jwt').value = localStorage.getItem('pinata_jwt') || "";
     </script>
 </body>
 </html>
