@@ -292,3 +292,53 @@ body {
 .nav-link:hover {
     color: var(--gold);
 }
+.network-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: #0d141c;
+    min-width: 180px;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
+    z-index: 1001;
+    border-radius: 12px;
+    border: 1px solid var(--glass);
+    margin-top: 10px;
+    overflow: hidden;
+}
+
+.net-item {
+    color: white;
+    padding: 12px 16px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.net-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--gold);
+}
+
+.balance-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--glass);
+    padding: 8px 15px;
+    border-radius: 15px;
+    border: 1px solid var(--glass);
+    transition: 0.3s;
+}
+
+.balance-badge:hover {
+    border-color: var(--gold);
+}
