@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Royal Market | Multi-Chain</title>
+    <title>Royal Market | Multi-Chain Elite</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
@@ -51,7 +51,6 @@
             <h1 class="glitch-text">Elite NFT Market</h1>
             <p>Real-time Multi-chain Marketplace</p>
         </header>
-
         <div id="nft-grid" class="nft-grid"></div>
     </div>
 
@@ -70,7 +69,7 @@
                 <input type="text" id="nft-name" class="modal-input" placeholder="e.g. Ton Moon">
                 <label>Ticker</label>
                 <input type="text" id="nft-ticker" class="modal-input" placeholder="$TON">
-                <label>Image URL (or use default)</label>
+                <label>Image URL</label>
                 <input type="text" id="nft-img-url" class="modal-input" placeholder="https://...">
                 <div class="fee-info" id="fee-display">Fee: 0.3 TON</div>
                 <button id="mint-btn" class="buy-btn" onclick="processMint()">Launch NFT</button>
@@ -93,21 +92,29 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        
+
+        const MY_WALLETS = {
+            ton: "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98",
+            solana: "5eJPgW6Sk1AqDmaDTRkh2vVGX1LS1fgzySCgLU8q3Mvg",
+            bsc: "0x7DCe52e3087b45ab2CA7eB714ea569a0E208704C",
+            polygon: "0x7DCe52e3087b45ab2CA7eB714ea569a0E208704C"
+        };
+
+        const netConfig = {
+            ton: { symbol: 'TON', icon: 'https://cryptologos.cc/logos/toncoin-ton-logo.png', fee: '0.3', hexId: null },
+            solana: { symbol: 'SOL', icon: 'https://cryptologos.cc/logos/solana-sol-logo.png', fee: '0.02', hexId: null },
+            bsc: { symbol: 'BNB', icon: 'https://cryptologos.cc/logos/binance-coin-bnb-logo.png', fee: '0.005', hexId: '0x38' },
+            polygon: { symbol: 'POL', icon: 'https://cryptologos.cc/logos/polygon-matic-logo.png', fee: '1', hexId: '0x89' }
+        };
+
+        let currentNet = 'ton';
+
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://cute-rugelach-0f683f.netlify.app/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
 
-        let currentNet = 'ton';
-        const netConfig = {
-            ton: { symbol: 'TON', icon: 'https://cryptologos.cc/logos/toncoin-ton-logo.png', fee: '0.3 TON' },
-            solana: { symbol: 'SOL', icon: 'https://cryptologos.cc/logos/solana-sol-logo.png', fee: '0.02 SOL' },
-            bsc: { symbol: 'BNB', icon: 'https://cryptologos.cc/logos/binance-coin-bnb-logo.png', fee: '0.005 BNB' },
-            polygon: { symbol: 'POL', icon: 'https://cryptologos.cc/logos/polygon-matic-logo.png', fee: '1 POL' }
-        };
-
-        // --- ВЫВОД NFT ИЗ FIREBASE (ВОЗВРАЩЕНО) ---
+        // --- FETCH NFTs ---
         const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
         onSnapshot(q, (snapshot) => {
             const grid = document.getElementById('nft-grid');
@@ -133,7 +140,7 @@
             });
         });
 
-        // --- ЛОГИКА БАЛАНСОВ ---
+        // --- NETWORK LOGIC ---
         window.toggleNetMenu = () => {
             const menu = document.getElementById('net-menu');
             menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
@@ -144,71 +151,98 @@
             document.getElementById('net-menu').style.display = 'none';
             document.getElementById('current-net-icon').src = netConfig[net].icon;
             document.getElementById('display-symbol').innerText = netConfig[net].symbol;
-            document.getElementById('fee-display').innerText = `Fee: ${netConfig[net].fee}`;
-            await updateBalance();
+            document.getElementById('fee-display').innerText = `Fee: ${netConfig[net].fee} ${netConfig[net].symbol}`;
+            await connectSelectedWallet(net);
         };
+
+        async function connectSelectedWallet(net) {
+            try {
+                if ((net === 'bsc' || net === 'polygon') && window.ethereum) {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: netConfig[net].hexId }],
+                    });
+                } else if (net === 'solana' && window.solana) {
+                    await window.solana.connect();
+                } else if (net === 'ton' && !tonConnectUI.connected) {
+                    await tonConnectUI.openModal();
+                }
+                updateBalance();
+            } catch (e) { console.error(e); }
+        }
 
         async function updateBalance() {
             const balEl = document.getElementById('display-balance');
-            balEl.innerText = "...";
-
             try {
                 if (currentNet === 'ton' && tonConnectUI.account) {
                     const res = await fetch(`https://toncenter.com/api/v2/getAddressInformation?address=${tonConnectUI.account.address}`);
                     const data = await res.json();
                     balEl.innerText = data.ok ? (parseInt(data.result.balance) / 1e9).toFixed(2) : "0.00";
-                } 
-                else if ((currentNet === 'bsc' || currentNet === 'polygon') && window.ethereum) {
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    const balance = await window.ethereum.request({ method: 'eth_getBalance', params: [accounts[0], 'latest'] });
-                    balEl.innerText = (parseInt(balance, 16) / 1e18).toFixed(4);
-                }
-                else if (currentNet === 'solana' && window.solana) {
-                    const resp = await window.solana.connect();
+                } else if ((currentNet === 'bsc' || currentNet === 'polygon') && window.ethereum) {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    if (accounts[0]) {
+                        const balance = await window.ethereum.request({ method: 'eth_getBalance', params: [accounts[0], 'latest'] });
+                        balEl.innerText = (parseInt(balance, 16) / 1e18).toFixed(4);
+                    }
+                } else if (currentNet === 'solana' && window.solana?.publicKey) {
                     const solRes = await fetch('https://api.mainnet-beta.solana.com', {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getBalance", params: [resp.publicKey.toString()] })
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({jsonrpc:"2.0",id:1,method:"getBalance",params:[window.solana.publicKey.toString()]})
                     });
                     const solData = await solRes.json();
                     balEl.innerText = solData.result ? (solData.result.value / 1e9).toFixed(2) : "0.00";
-                } else {
-                    balEl.innerText = "0.00";
                 }
-            } catch (e) { 
-                console.error(e);
-                balEl.innerText = "0.00"; 
-            }
+            } catch (e) { balEl.innerText = "0.00"; }
         }
 
-        // --- ФУНКЦИИ МОДАЛОК И КНОПОК ---
-        window.toggleModal = (id) => {
-            const m = document.getElementById(id);
-            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
-        };
-
+        // --- MINT PROCESS ---
         window.processMint = async () => {
-            if (!tonConnectUI.connected) return tonConnectUI.openModal();
-            const name = document.getElementById('nft-name').value;
-            const ticker = document.getElementById('nft-ticker').value;
-            const img = document.getElementById('nft-img-url').value || "https://purple-charming-hamster-277.mypinata.cloud/ipfs/QmXkH2eS98HS6BScHczcmVRF1234cr4UiSX6pQad8n72EE";
-
+            const fee = netConfig[currentNet].fee;
+            const recipient = MY_WALLETS[currentNet];
             try {
-                // Имитация транзакции комиссии
-                const tx = {
-                    validUntil: Math.floor(Date.now() / 1000) + 300,
-                    messages: [{ address: "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98", amount: "300000000" }]
-                };
-                await tonConnectUI.sendTransaction(tx);
+                if (currentNet === 'ton') {
+                    await tonConnectUI.sendTransaction({
+                        validUntil: Math.floor(Date.now() / 1000) + 300,
+                        messages: [{ address: recipient, amount: (fee * 1e9).toString() }]
+                    });
+                } else if (currentNet === 'solana') {
+                    const transaction = new solanaWeb3.Transaction().add(
+                        solanaWeb3.SystemProgram.transfer({
+                            fromPubkey: window.solana.publicKey,
+                            toPubkey: new solanaWeb3.PublicKey(recipient),
+                            lamports: fee * solanaWeb3.LAMPORTS_PER_SOL,
+                        })
+                    );
+                    const { blockhash } = await (await fetch('https://api.mainnet-beta.solana.com', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({jsonrpc:"2.0",id:1,method:"getLatestBlockhash"})
+                    })).json().then(res => res.result.value);
+                    transaction.recentBlockhash = blockhash;
+                    transaction.feePayer = window.solana.publicKey;
+                    await window.solana.signAndSendTransaction(transaction);
+                } else if (currentNet === 'bsc' || currentNet === 'polygon') {
+                    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [{ from: accounts[0], to: recipient, value: (fee * 1e18).toString(16) }],
+                    });
+                }
 
                 await addDoc(collection(db, "nfts"), {
-                    name, ticker, image: img,
-                    owner: tonConnectUI.account.address,
-                    price: 1, network: currentNet,
-                    createdAt: Date.now()
+                    name: document.getElementById('nft-name').value,
+                    ticker: document.getElementById('nft-ticker').value,
+                    image: document.getElementById('nft-img-url').value || "https://purple-charming-hamster-277.mypinata.cloud/ipfs/QmXkH2eS98HS6BScHczcmVRF1234cr4UiSX6pQad8n72EE",
+                    owner: "User", price: 1, network: currentNet, createdAt: Date.now()
                 });
                 alert("NFT Created!");
                 toggleModal('mint-modal');
-            } catch(e) { alert("Error or Rejected"); }
+            } catch (e) { alert("Transaction failed/rejected"); }
+        };
+
+        window.toggleModal = (id) => {
+            const m = document.getElementById(id);
+            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
         };
 
         tonConnectUI.onStatusChange((wallet) => {
