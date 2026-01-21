@@ -309,3 +309,79 @@ body {
 .nav-link:hover {
     color: var(--gold);
 }
+/* Стили для табов (My NFTs) */
+.tab-btn {
+    padding: 10px 20px;
+    background: var(--glass);
+    border: 1px solid var(--glass);
+    color: var(--text-dim);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+    font-weight: 600;
+}
+
+.tab-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+/* Состояние загрузки и блокировки кнопок */
+.buy-btn:disabled {
+    background: #2a2a2a;
+    color: #555;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Индикатор загрузки (Loader) */
+.loader {
+    border: 3px solid var(--glass);
+    border-top: 3px solid var(--gold);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Адаптивность для мобилок */
+@media (max-width: 600px) {
+    .nft-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 15px;
+    }
+    
+    .nft-image {
+        height: 180px;
+    }
+    
+    .brand span {
+        font-size: 18px;
+    }
+    
+    .fab-mint {
+        width: 80%;
+        padding: 12px;
+        font-size: 14px;
+    }
+}
+
+/* Улучшение скроллбара для модалок */
+.modal-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+.modal-scroll::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+.modal-scroll::-webkit-scrollbar-thumb {
+    background: var(--glass);
+    border-radius: 10px;
+}
