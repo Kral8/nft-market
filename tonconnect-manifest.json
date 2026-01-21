@@ -1,7 +1,14 @@
 {
-  "url": "https://kral8.github.io/nft-market/",
   "name": "Royal NFT Market",
-  "iconUrl": "https://kral8.github.io/nft-market/icon.png",
+  "url": "https://kral8.github.io/nft-market/",
+  "iconUrl": "https://raw.githubusercontent.com/Kral8/nft-market/main/icon.png",
   "termsOfUseUrl": "https://kral8.github.io/nft-market/terms.html",
-  "privacyPolicyUrl": "https://kral8.github.io/nft-market/privacy.html"
+  "privacyPolicyUrl": "https://kral8.github.io/nft-market/privacy.html",
+  "version": "1.0",
+  "items": [
+    {
+      "name": "ton_addr",
+      "required": true
+    }
+  ]
 }
