@@ -155,29 +155,37 @@
 
         const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
         onSnapshot(q, (snapshot) => {
-            const grid = document.getElementById('nft-grid');
-            grid.innerHTML = '';
-            snapshot.forEach(doc => {
-                const nft = doc.data();
-                const card = document.createElement('div');
-                card.className = 'nft-card';
-                card.innerHTML = `
-                    <div style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:10px; font-size:10px; color:#ffd700;">${nft.series || 'Collection'}</div>
-                    <img src="${nft.image}" class="nft-image">
-                    <div class="nft-info">
-                        <h3>${nft.name} ${nft.isAdmin ? '<i class="fas fa-check-circle" style="color:#2081e2; font-size:14px;"></i>' : ''}</h3>
-                        <p style="font-size: 11px; color: #8a939b; margin: 5px 0; height: 30px; overflow: hidden;">${nft.description || ''}</p>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div class="price-tag">0.2 TON</div>
-                            <div style="font-size:10px; color:#8a939b;">Status: Minted</div>
-                        </div>
-                        <button class="buy-btn" onclick="alert('Secondary market coming soon')">View on Scan</button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        });
+            const grid = document.getElementById('nft-grid');
+            grid.innerHTML = '';
+            snapshot.forEach(docSnap => {
+                const nft = docSnap.data();
+                const nftId = docSnap.id;
+                
+                // Проверка владельца для кнопки
+                const currentWallet = tonConnectUI.account ? tonConnectUI.account.address : null;
+                const isMyNFT = currentWallet && nft.owner === currentWallet;
 
+                const card = document.createElement('div');
+                card.className = 'nft-card';
+                card.innerHTML = `
+                    <div style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:10px; font-size:10px; color:#ffd700;">${nft.series || 'Collection'}</div>
+                    <img src="${nft.image}" class="nft-image">
+                    <div class="nft-info">
+                        <h3>${nft.name}</h3>
+                        <p style="font-size: 11px; color: #8a939b; margin: 5px 0; height: 30px; overflow: hidden;">${nft.description || ''}</p>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="price-tag">0.2 TON</div>
+                            <div style="font-size:10px; color:#8a939b;">Status: ${nft.status || 'Minted'}</div>
+                        </div>
+                        ${isMyNFT ? 
+                            `<button class="buy-btn" style="background:#444; opacity:0.7;" disabled>Your NFT</button>` : 
+                            `<button class="buy-btn" onclick="buyNFT('${nftId}', '${nft.owner || COLLECTION_ADDRESS}', 0.2)">Buy Now</button>`
+                        }
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        });
         window.toggleModal = (id) => {
             const m = document.getElementById(id);
             m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
