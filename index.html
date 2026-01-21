@@ -69,36 +69,16 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const COLLECTION_ADDRESS = "kQAauN1VLtEh9x9aZkOHqWnngiNwSe0bVkYhM6-cqtGqVU8Y";
+        const COLLECTION_ADDRESS = "kQAauN1VLtEh9x9aZkOHqWnngiNwSe0bVkYhM6-cqtGqVU8Y"; // ЗАМЕНИ ПОСЛЕ ДЕПЛОЯ
 
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
 
-        tonConnectUI.onStatusChange(wallet => {
-            if (wallet) {
-                document.getElementById('active-wallet-info').style.display = 'flex';
-                updateBalance(wallet.account.address);
-            } else {
-                document.getElementById('active-wallet-info').style.display = 'none';
-            }
-        });
-
-        async function updateBalance(address) {
-            try {
-                const res = await fetch(`https://testnet.toncenter.com/api/v2/getAddressInformation?address=${address}`);
-                const data = await res.json();
-                if (data.ok) {
-                    const bal = (parseInt(data.result.balance) / 1e9).toFixed(2);
-                    document.getElementById('display-balance').innerText = bal;
-                }
-            } catch (e) { console.error(e); }
-        }
-
-        // --- ФУНКЦИЯ ПОКУПКИ ---
+        // Логика покупки
         window.buyNFT = async (nftId, sellerAddress, price) => {
-            if (!tonConnectUI.connected) { alert("Connect wallet!"); tonConnectUI.openModal(); return; }
+            if (!tonConnectUI.connected) { tonConnectUI.openModal(); return; }
             try {
                 const amountInNano = (parseFloat(price) * 1e9).toFixed(0);
                 await tonConnectUI.sendTransaction({
@@ -110,21 +90,20 @@
                     owner: tonConnectUI.account.address,
                     status: "Sold"
                 });
-                alert("Success! NFT purchased.");
-            } catch (e) { alert("Transaction failed"); }
+                alert("NFT Purchased!");
+            } catch (e) { alert("Error!"); }
         };
 
-        // --- ФУНКЦИЯ МИНТА ---
+        // Логика Минта
         window.processMint = async () => {
-            if (!tonConnectUI.connected) { alert("Connect wallet!"); tonConnectUI.openModal(); return; }
+            if (!tonConnectUI.connected) { tonConnectUI.openModal(); return; }
             const file = document.getElementById('nft-file').files[0];
             const jwt = localStorage.getItem('pinata_jwt');
-            if (!file || !jwt) { alert("Check image and admin settings!"); return; }
+            if (!file || !jwt) { alert("Check Pinata JWT and Image!"); return; }
 
-            const mintBtn = document.getElementById('mint-submit-btn');
+            const btn = document.getElementById('mint-submit-btn');
             try {
-                mintBtn.innerText = "⏳ Uploading...";
-                mintBtn.disabled = true;
+                btn.innerText = "⏳ Uploading..."; btn.disabled = true;
 
                 const formData = new FormData();
                 formData.append('file', file);
@@ -132,58 +111,48 @@
                     method: 'POST', headers: { 'Authorization': `Bearer ${jwt}` }, body: formData
                 });
                 const pinData = await pinRes.json();
-                const imageUrl = `https://gateway.pinata.cloud/ipfs/${pinData.IpfsHash}`;
-
+                
                 await tonConnectUI.sendTransaction({
                     validUntil: Math.floor(Date.now() / 1000) + 300,
-                    messages: [{ address: COLLECTION_ADDRESS, amount: "200000000", payload: "te6cckEBAQEADgAAGJRqmLYAAAAAAAAAAOnNeQ0=" }]
+                    messages: [{ 
+                        address: COLLECTION_ADDRESS, 
+                        amount: "200000000", 
+                        payload: "te6cckEBAQEADgAAGJRqmLYAAAAAAAAAAOnNeQ0=" // Это "Mint"
+                    }]
                 });
 
                 await addDoc(collection(db, "nfts"), {
-                    name: document.getElementById('nft-name').value || "Unnamed",
-                    series: "Royal Collection",
-                    description: "Minted via Royal Market",
-                    image: imageUrl,
+                    name: document.getElementById('nft-name').value || "Royal NFT",
+                    image: `https://gateway.pinata.cloud/ipfs/${pinData.IpfsHash}`,
                     owner: tonConnectUI.account.address,
                     price: 0.2,
-                    status: "Active",
                     createdAt: Date.now()
                 });
 
-                alert("NFT Minted!");
-                location.reload();
-            } catch (e) { alert("Error!"); } finally { mintBtn.disabled = false; mintBtn.innerText = "Pay & Mint"; }
+                alert("Mint Success!"); location.reload();
+            } catch (e) { alert("Failed"); } finally { btn.disabled = false; btn.innerText = "Pay & Mint"; }
         };
 
-        // --- ОТОБРАЖЕНИЕ NFT ---
+        // Отображение
         const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
-        onSnapshot(q, (snapshot) => {
+        onSnapshot(q, (s) => {
             const grid = document.getElementById('nft-grid');
             grid.innerHTML = '';
-            snapshot.forEach(docSnap => {
-                const nft = docSnap.data();
-                const nftId = docSnap.id;
-                const currentWallet = tonConnectUI.account ? tonConnectUI.account.address : null;
-                const isMyNFT = currentWallet && nft.owner === currentWallet;
-
+            s.forEach(d => {
+                const nft = d.data();
+                const isOwner = tonConnectUI.account && nft.owner === tonConnectUI.account.address;
                 const card = document.createElement('div');
                 card.className = 'nft-card';
                 card.innerHTML = `
-                    <div style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:10px; font-size:10px; color:#ffd700;">${nft.series || 'Collection'}</div>
                     <img src="${nft.image}" class="nft-image">
                     <div class="nft-info">
                         <h3>${nft.name}</h3>
-                        <p style="font-size: 11px; color: #8a939b; margin: 5px 0; height: 30px; overflow: hidden;">${nft.description || ''}</p>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div class="price-tag">${nft.price || 0.2} TON</div>
-                            <div style="font-size:10px; color:#8a939b;">Status: ${nft.status || 'Active'}</div>
-                        </div>
-                        ${isMyNFT ? 
-                            `<button class="buy-btn" style="background:#444; cursor:not-allowed;" disabled>Your NFT</button>` : 
-                            `<button class="buy-btn" onclick="buyNFT('${nftId}', '${nft.owner || COLLECTION_ADDRESS}', ${nft.price || 0.2})">Buy Now</button>`
+                        <div class="price-tag">0.2 TON</div>
+                        ${isOwner ? 
+                            `<button class="buy-btn" style="background:#444" disabled>Your NFT</button>` : 
+                            `<button class="buy-btn" onclick="buyNFT('${d.id}', '${nft.owner}', 0.2)">Buy Now</button>`
                         }
-                    </div>
-                `;
+                    </div>`;
                 grid.appendChild(card);
             });
         });
