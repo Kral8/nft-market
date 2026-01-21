@@ -6,12 +6,12 @@
     <title>My NFTs - Royal Market</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.js"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <button onclick="goBack()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">←</button>
+            <button id="back-btn-manual" onclick="goBack()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">←</button>
             <div class="brand"><span>My NFTs</span></div>
             <div id="ton-connect-btn"></div>
         </div>
@@ -24,39 +24,38 @@
         </div>
         
         <div style="margin-bottom:30px;">
-            <div style="display:flex; gap:10px; margin-bottom:20px;">
-                <button onclick="filterNFTs('all')" class="tab-btn active">All</button>
-                <button onclick="filterNFTs('owned')" class="tab-btn">Owned</button>
-                <button onclick="filterNFTs('created')" class="tab-btn">Created</button>
-                <button onclick="filterNFTs('listed')" class="tab-btn">For Sale</button>
+            <div style="display:flex; gap:10px; margin-bottom:20px; overflow-x: auto; padding-bottom: 10px;">
+                <button onclick="filterNFTs('all')" class="tab-btn active" id="tab-all">All</button>
+                <button onclick="filterNFTs('owned')" class="tab-btn" id="tab-owned">Owned</button>
+                <button onclick="filterNFTs('created')" class="tab-btn" id="tab-created">Created</button>
             </div>
             
-            <div id="user-stats" style="background:#18202a; padding:20px; border-radius:15px; display:flex; justify-content:space-around; text-align:center;">
+            <div id="user-stats" style="background:#18202a; padding:20px; border-radius:15px; display:flex; justify-content:space-around; text-align:center; border: 1px solid rgba(255,215,0,0.1);">
                 <div>
                     <div style="color:#ffd700; font-size:24px; font-weight:bold;" id="total-nfts">0</div>
-                    <div style="color:#8a939b; font-size:14px;">Total NFTs</div>
+                    <div style="color:#8a939b; font-size:14px;">Items</div>
                 </div>
                 <div>
                     <div style="color:#2081e2; font-size:24px; font-weight:bold;" id="listed-nfts">0</div>
-                    <div style="color:#8a939b; font-size:14px;">Listed</div>
+                    <div style="color:#8a939b; font-size:14px;">On Sale</div>
                 </div>
                 <div>
                     <div style="color:#00b09b; font-size:24px; font-weight:bold;" id="total-value">0</div>
-                    <div style="color:#8a939b; font-size:14px;">Total Value</div>
+                    <div style="color:#8a939b; font-size:14px;">Value (TON)</div>
                 </div>
             </div>
         </div>
         
         <div id="my-nfts-grid" class="nft-grid">
             <p style="text-align:center; grid-column:1/-1; padding:40px; color:#8a939b;">
-                Connect your wallet to see your NFTs...
+                Connect your wallet to see your collection...
             </p>
         </div>
         
         <div style="text-align:center; margin-top:40px;">
             <button onclick="window.location.href='index.html'" 
-                    style="background:#2081e2; color:white; border:none; padding:12px 30px; border-radius:25px; font-weight:bold; cursor:pointer;">
-                ← Back to Marketplace
+                    style="background:rgba(255,255,255,0.05); color:white; border:1px solid rgba(255,255,255,0.1); padding:12px 30px; border-radius:25px; font-weight:bold; cursor:pointer;">
+                Marketplace
             </button>
         </div>
     </div>
@@ -78,131 +77,107 @@
         const db = getFirestore(app);
         
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: window.location.origin + '/tonconnect-manifest.json',
+            manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
         
         let currentUserAddress = '';
-        
+        let allMyNFTs = [];
+
+        // Функция для загрузки NFT
         async function loadMyNFTs() {
             const grid = document.getElementById('my-nfts-grid');
+            if (!currentUserAddress) return;
             
-            if (!currentUserAddress) {
-                grid.innerHTML = '<p style="text-align:center; grid-column:1/-1; padding:40px; color:#8a939b;">Connect wallet to see your NFTs</p>';
-                return;
-            }
-            
-            grid.innerHTML = '<p style="text-align:center; grid-column:1/-1; padding:40px;"><div class="loader"></div><br>Loading your collection...</p>';
+            grid.innerHTML = '<p style="text-align:center; grid-column:1/-1; padding:40px; color:#ffd700;">Scanning Blockchain...</p>';
             
             try {
                 const querySnapshot = await getDocs(collection(db, "nfts"));
-                
-                let totalNFTs = 0;
-                let listedNFTs = 0;
+                allMyNFTs = [];
                 let totalValue = 0;
-                let nfts = [];
                 
                 querySnapshot.forEach(doc => {
                     const nft = doc.data();
-                    if (nft.owner === currentUserAddress) {
-                        nfts.push({ id: doc.id, ...nft });
-                        totalNFTs++;
-                        totalValue += parseFloat(nft.price || 0);
-                        if (!nft.sold) listedNFTs++;
+                    // Проверка владения (сравниваем адрес)
+                    if (nft.owner === currentUserAddress || nft.creator === currentUserAddress) {
+                        allMyNFTs.push({ id: doc.id, ...nft });
+                        if (nft.owner === currentUserAddress) {
+                            totalValue += parseFloat(nft.price || 0);
+                        }
                     }
                 });
                 
-                document.getElementById('total-nfts').textContent = totalNFTs;
-                document.getElementById('listed-nfts').textContent = listedNFTs;
-                document.getElementById('total-value').textContent = totalValue.toFixed(2) + ' TON';
-                
-                displayNFTs(nfts);
+                updateStats(allMyNFTs.length, totalValue);
+                displayNFTs(allMyNFTs);
                 
             } catch (error) {
-                console.error("Error loading NFTs:", error);
-                grid.innerHTML = '<p style="text-align:center; grid-column:1/-1; padding:40px; color:#ff4757;">Error loading your NFTs</p>';
+                console.error("Error:", error);
+                grid.innerHTML = '<p style="color:red; text-align:center; grid-column:1/-1;">Firebase Connection Error</p>';
             }
         }
         
+        function updateStats(count, value) {
+            document.getElementById('total-nfts').textContent = count;
+            document.getElementById('total-value').textContent = value.toFixed(2);
+            document.getElementById('listed-nfts').textContent = allMyNFTs.filter(n => !n.sold).length;
+        }
+
         function displayNFTs(nfts) {
             const grid = document.getElementById('my-nfts-grid');
+            grid.innerHTML = '';
             
             if (nfts.length === 0) {
-                grid.innerHTML = `
-                    <div style="grid-column:1/-1; text-align:center; padding:60px 20px;">
-                        <div style="font-size:60px; margin-bottom:20px;">🖼️</div>
-                        <h3 style="color:white;">No NFTs yet</h3>
-                        <p style="color:#8a939b;">Create your first NFT or buy from marketplace</p>
-                        <button onclick="window.location.href='index.html'" 
-                                style="margin-top:20px; background:#2081e2; color:white; border:none; padding:12px 24px; border-radius:25px; cursor:pointer;">
-                            Go to Marketplace
-                        </button>
-                    </div>
-                `;
+                grid.innerHTML = '<p style="text-align:center; grid-column:1/-1; padding:40px; color:#8a939b;">You don\'t have any NFTs yet.</p>';
                 return;
             }
-            
-            grid.innerHTML = '';
             
             nfts.forEach(nft => {
                 const div = document.createElement('div');
                 div.className = 'nft-card';
-                
                 div.innerHTML = `
-                    <img src="${nft.image}" alt="${nft.name}" 
-                         style="width:100%; height:180px; object-fit:cover; border-radius:10px 10px 0 0;">
-                    <div style="padding:12px;">
-                        <h3 style="margin:0 0 5px 0; color:white; font-size:16px;">${nft.name}</h3>
-                        <div style="color:#ffd700; font-weight:bold; font-size:18px;">${parseFloat(nft.price).toFixed(2)} TON</div>
-                        <div style="color:#8a939b; font-size:12px; margin-top:5px;">
-                            ${nft.sold ? '✅ Sold' : '🟢 For Sale'}
+                    <div style="position:relative;">
+                        <img src="${nft.image}" alt="${nft.name}" style="width:100%; height:200px; object-fit:cover; border-radius:12px;">
+                        <div style="position:absolute; bottom:10px; right:10px; background:rgba(0,0,0,0.7); padding:4px 8px; border-radius:8px; font-size:12px; color:#ffd700;">
+                            ${nft.price} TON
                         </div>
                     </div>
-                    <div style="display:flex; border-top:1px solid rgba(255,255,255,0.1);">
-                        <button onclick="editNFT('${nft.id}')" 
-                                style="flex:1; background:transparent; color:#2081e2; border:none; padding:10px; cursor:pointer;">
-                            Edit
-                        </button>
-                        <button onclick="delistNFT('${nft.id}')" 
-                                style="flex:1; background:transparent; color:#ff4757; border:none; padding:10px; cursor:pointer; border-left:1px solid rgba(255,255,255,0.1);">
-                            Delist
-                        </button>
+                    <div style="padding:15px 5px;">
+                        <h3 style="margin:0; font-size:16px; color:white;">${nft.name}</h3>
+                        <p style="color:#8a939b; font-size:12px; margin:5px 0;">Status: ${nft.owner === currentUserAddress ? 'Owned' : 'Created'}</p>
+                        <div style="display:flex; gap:10px; margin-top:10px;">
+                             <button onclick="window.open('https://testnet.tonviewer.com/${currentUserAddress}')" style="flex:1; background:#2081e2; border:none; color:white; padding:8px; border-radius:8px; font-size:12px; cursor:pointer;">Scan</button>
+                             <button onclick="alert('Coming soon: Sell on secondary market')" style="flex:1; background:transparent; border:1px solid #2081e2; color:#2081e2; padding:8px; border-radius:8px; font-size:12px; cursor:pointer;">List</button>
+                        </div>
                     </div>
                 `;
-                
                 grid.appendChild(div);
             });
         }
-        
-        function filterNFTs(filter) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
+
+        // Фильтрация (визуальная для примера)
+        window.filterNFTs = (type) => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + type).classList.add('active');
             
-            event.target.classList.add('active');
-            console.log("Filter by:", filter);
-        }
-        
-        function editNFT(nftId) {
-            alert("Edit NFT: " + nftId);
-        }
-        
-        function delistNFT(nftId) {
-            if (confirm("Remove this NFT from marketplace?")) {
-                alert("Delisting: " + nftId);
-            }
-        }
-        
-        function goBack() {
-            window.history.back();
-        }
-        
+            if (type === 'all') displayNFTs(allMyNFTs);
+            else if (type === 'owned') displayNFTs(allMyNFTs.filter(n => n.owner === currentUserAddress));
+            else if (type === 'created') displayNFTs(allMyNFTs.filter(n => n.creator === currentUserAddress));
+        };
+
+        window.goBack = () => {
+            window.location.href = 'index.html';
+        };
+
+        // Инициализация Telegram WebApp
         document.addEventListener('DOMContentLoaded', () => {
             const tg = window.Telegram?.WebApp;
             if (tg) {
+                tg.ready();
                 tg.expand();
                 tg.BackButton.show();
-                tg.BackButton.onClick(goBack);
+                tg.BackButton.onClick(() => { window.location.href = 'index.html'; });
+                // Скрываем обычную кнопку назад, если мы в ТГ
+                document.getElementById('back-btn-manual').style.display = 'none';
             }
             
             tonConnectUI.onStatusChange((wallet) => {
@@ -211,7 +186,7 @@
                     loadMyNFTs();
                 } else {
                     currentUserAddress = '';
-                    loadMyNFTs();
+                    document.getElementById('my-nfts-grid').innerHTML = '<p style="text-align:center; grid-column:1/-1; padding:40px;">Connect wallet to see collection</p>';
                 }
             });
         });
@@ -219,23 +194,30 @@
     
     <style>
         .tab-btn {
-            padding: 10px 20px;
+            padding: 8px 18px;
             background: rgba(255,255,255,0.05);
-            border: none;
+            border: 1px solid rgba(255,255,255,0.1);
             color: #8a939b;
             border-radius: 20px;
             cursor: pointer;
-            transition: all 0.3s;
+            white-space: nowrap;
         }
-        
         .tab-btn.active {
-            background: #2081e2;
-            color: white;
+            background: #ffd700;
+            color: black;
+            border-color: #ffd700;
+            font-weight: bold;
         }
-        
-        .tab-btn:hover {
-            background: rgba(255,255,255,0.1);
+        .loader {
+            border: 3px solid #18202a;
+            border-top: 3px solid #ffd700;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
         }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </body>
 </html>
