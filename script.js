@@ -23,9 +23,11 @@ const db = getFirestore(app);
 
 /* ================= TON CONNECT ================= */
 const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-  manifestUrl: "https://cute-rugelach-0f683f.netlify.app/tonconnect-manifest.json"
+  manifestUrl: "https://kral8.github.io/nft-market/tonconnect-manifest.json" // Исправил на твой рабочий манифест
 });
 
+// АДРЕС ТВОЕГО КОНТРАКТА КОЛЛЕКЦИИ
+const COLLECTION_ADDRESS = "kQAauN1VLtEh9x9aZkOHqWnngiNwSe0bVkYhM6-cqtGqVU8Y";
 let CURRENT_USER = "";
 
 /* ================= CONNECT ================= */
@@ -41,37 +43,30 @@ window.connectWallet = async () => {
 tonConnectUI.onStatusChange(wallet => {
   if (wallet && wallet.account?.address) {
     CURRENT_USER = wallet.account.address;
-    document.getElementById("wallet-address").innerText =
-      CURRENT_USER.slice(0, 6) + "..." + CURRENT_USER.slice(-4);
+    const addr = document.getElementById("wallet-address");
+    if(addr) addr.innerText = CURRENT_USER.slice(0, 6) + "..." + CURRENT_USER.slice(-4);
   } else {
     CURRENT_USER = "";
-    document.getElementById("wallet-address").innerText = "";
+    const addr = document.getElementById("wallet-address");
+    if(addr) addr.innerText = "";
   }
 });
-
-/* ================= GLOBAL ================= */
-const MARKET_OWNER = "UQB_rYz84GULTmhLKuOGa6731bsuT-nLELiem9p-u2qI_D98";
-let ALL_NFTS = [];
 
 /* ================= LOAD NFT ================= */
 async function loadNFTs() {
   const grid = document.getElementById("nft-grid");
+  if (!grid) return;
   grid.innerHTML = `<div class="loader"></div>`;
 
   try {
     const snap = await getDocs(collection(db, "nfts"));
-    ALL_NFTS = [];
+    let all_nfts = [];
 
     snap.forEach(d => {
-      const n = d.data();
-      ALL_NFTS.push({
-        id: d.id,
-        ...n
-      });
+      all_nfts.push({ id: d.id, ...d.data() });
     });
 
-    renderNFTs(ALL_NFTS);
-
+    renderNFTs(all_nfts);
   } catch (e) {
     console.error(e);
     grid.innerHTML = "<p style='color:red'>Firebase error</p>";
@@ -81,6 +76,7 @@ async function loadNFTs() {
 /* ================= RENDER ================= */
 function renderNFTs(list) {
   const grid = document.getElementById("nft-grid");
+  if (!grid) return;
 
   if (!list.length) {
     grid.innerHTML = "<p>No NFTs yet</p>";
@@ -91,71 +87,77 @@ function renderNFTs(list) {
     <div class="nft-card">
       <img src="${nft.image}">
       <h3>${nft.name}</h3>
-      <p>${short(nft.owner)}</p>
+      <p>Owner: ${short(nft.owner)}</p>
       <strong>${nft.price} TON</strong>
       ${nft.owner !== CURRENT_USER ? `
-        <button onclick="buyNFT('${nft.id}', '${nft.owner}', ${nft.price})">
+        <button class="buy-btn" onclick="buyNFT('${nft.id}', '${nft.owner}', ${nft.price})">
           Buy
-        </button>` : `<span>Your NFT</span>`}
+        </button>` : `<span class="badge">Your NFT</span>`}
     </div>
   `).join("");
 }
 
 function short(addr) {
+  if(!addr) return "Unknown";
   return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
-/* ================= BUY NFT ================= */
-window.buyNFT = async (id, seller, price) => {
-  if (!tonConnectUI.connected || !CURRENT_USER) {
-    alert("Connect wallet first");
-    return;
-  }
-
-  await tonConnectUI.sendTransaction({
-    validUntil: Math.floor(Date.now() / 1000) + 300,
-    messages: [{
-      address: seller,
-      amount: (price * 1e9).toString()
-    }]
-  });
-
-  await updateDoc(doc(db, "nfts", id), {
-    owner: CURRENT_USER
-  });
-
-  loadNFTs();
-};
-
-/* ================= MINT NFT ================= */
+/* ================= MINT NFT (Взаимодействие с контрактом) ================= */
 window.runMinting = async (name, image, price) => {
-  if (!CURRENT_USER) {
-    alert("Connect wallet");
+  if (!tonConnectUI.connected || !CURRENT_USER) {
+    alert("Please connect wallet first!");
+    tonConnectUI.openModal();
     return;
   }
 
-  // комиссия маркету
-  await tonConnectUI.sendTransaction({
-    validUntil: Math.floor(Date.now() / 1000) + 300,
-    messages: [{
-      address: MARKET_OWNER,
-      amount: (0.3 * 1e9).toString()
-    }]
-  });
+  try {
+    // Payload для сообщения "Mint" (тот самый код для твоего контракта)
+    const payload = "te6cckEBAQEADgAAGJRqmLYAAAAAAAAAAOnNeQ0=";
 
-  await addDoc(collection(db, "nfts"), {
-    name,
-    image,
-    price,
-    owner: CURRENT_USER,
-    creator: CURRENT_USER,
-    listed: true,
-    featured: false,
-    createdAt: Date.now()
-  });
+    // Отправляем транзакцию именно в СМАРТ-КОНТРАКТ
+    await tonConnectUI.sendTransaction({
+      validUntil: Math.floor(Date.now() / 1000) + 300,
+      messages: [{
+        address: COLLECTION_ADDRESS, 
+        amount: (0.2 * 1e9).toString(), // Контракт ждет 0.2 TON для минта
+        payload: payload
+      }]
+    });
 
-  loadNFTs();
+    // Если транзакция прошла, записываем данные в Firebase
+    await addDoc(collection(db, "nfts"), {
+      name,
+      image,
+      price: 0.2, // Цена минта
+      owner: CURRENT_USER,
+      creator: CURRENT_USER,
+      createdAt: Date.now()
+    });
+
+    alert("NFT Minting started! Check your wallet in a minute.");
+    loadNFTs();
+  } catch (e) {
+    console.error(e);
+    alert("Minting failed or cancelled.");
+  }
 };
 
-/* ================= INIT ================= */
+/* ================= BUY NFT (Вторичный рынок) ================= */
+window.buyNFT = async (id, seller, price) => {
+  if (!tonConnectUI.connected) { alert("Connect wallet!"); return; }
+
+  try {
+    await tonConnectUI.sendTransaction({
+      validUntil: Math.floor(Date.now() / 1000) + 300,
+      messages: [{
+        address: seller,
+        amount: (price * 1e9).toString()
+      }]
+    });
+
+    await updateDoc(doc(db, "nfts", id), { owner: CURRENT_USER });
+    loadNFTs();
+  } catch (e) { console.error(e); }
+};
+
 document.addEventListener("DOMContentLoaded", loadNFTs);
