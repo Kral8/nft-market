@@ -48,7 +48,7 @@
                 <input type="text" id="nft-ticker" class="modal-input" placeholder="$ROYAL">
                 <label>NFT Image</label>
                 <input type="file" id="nft-file" class="modal-input" accept="image/*">
-                <div class="fee-info">Fee: 0.2 TON</div>
+                <div class="fee-info">Fee: 0.2 TON + Gas</div>
                 <button id="mint-submit-btn" class="buy-btn" onclick="processMint()">Pay & Mint</button>
             </div>
         </div>
@@ -69,9 +69,11 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const COLLECTION_ADDRESS = "kQBl0y2RFfqogjOTdKYTTPfM9vpoS0qLDvBfgK7IJNyTyJ8D"; // ЗАМЕНИ ПОСЛЕ ДЕПЛОЯ
+        
+        // ОБНОВЛЕННЫЙ АДРЕС ТВОЕГО КОНТРАКТА
+        const COLLECTION_ADDRESS = "EQBjFTvwnuRgJYVuAEPTjE8d-3DoBEPsoA8KzaZsljjlWa0I"; 
 
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        const tonConnectUI = new TonConnectUI.TonConnectUI({
             manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
@@ -112,12 +114,13 @@
                 });
                 const pinData = await pinRes.json();
                 
+                // ТРАНЗАКЦИЯ НА КОНТРАКТ (0.2 тебе + 0.05 на газ)
                 await tonConnectUI.sendTransaction({
                     validUntil: Math.floor(Date.now() / 1000) + 300,
                     messages: [{ 
                         address: COLLECTION_ADDRESS, 
-                        amount: "200000000", 
-                        payload: "te6cckEBAQEADgAAGJRqmLYAAAAAAAAAAOnNeQ0=" // Это "Mint"
+                        amount: "250000000", // 0.25 TON
+                        payload: "te6cckEBAQEADgAAGJRqmLYAAAAAAAAAAOnNeQ0=" // Сообщение "Mint"
                     }]
                 });
 
@@ -129,8 +132,8 @@
                     createdAt: Date.now()
                 });
 
-                alert("Mint Success!"); location.reload();
-            } catch (e) { alert("Failed"); } finally { btn.disabled = false; btn.innerText = "Pay & Mint"; }
+                alert("Mint Success! Your 0.2 TON fee sent to owner."); location.reload();
+            } catch (e) { alert("Transaction Failed or Cancelled"); } finally { btn.disabled = false; btn.innerText = "Pay & Mint"; }
         };
 
         // Отображение
