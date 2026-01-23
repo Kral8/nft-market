@@ -48,7 +48,7 @@
                 <input type="text" id="nft-ticker" class="modal-input" placeholder="$ROYAL">
                 <label>NFT Image</label>
                 <input type="file" id="nft-file" class="modal-input" accept="image/*">
-                <div class="fee-info">Fee: 0.2 TON + Gas</div>
+                <div class="fee-info">Fee: 0.25 TON (incl. gas)</div>
                 <button id="mint-submit-btn" class="buy-btn" onclick="processMint()">Pay & Mint</button>
             </div>
         </div>
@@ -70,17 +70,22 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
-        // ОБНОВЛЕННЫЙ АДРЕС ТВОЕГО КОНТРАКТА
         const COLLECTION_ADDRESS = "EQBjFTvwnuRgJYVuAEPTjE8d-3DoBEPsoA8KzaZsljjlWa0I"; 
 
-        const tonConnectUI = new TonConnectUI.TonConnectUI({
+        // Инициализация TonConnect (теперь через глобальный объект библиотеки)
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
             manifestUrl: 'https://kral8.github.io/nft-market/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
 
-        // Логика покупки
+        // Делаем функции доступными для кнопок (onclick)
+        window.toggleModal = (id) => {
+            const m = document.getElementById(id);
+            if (m) m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+        };
+
         window.buyNFT = async (nftId, sellerAddress, price) => {
-            if (!tonConnectUI.connected) { tonConnectUI.openModal(); return; }
+            if (!tonConnectUI.connected) { await tonConnectUI.openModal(); return; }
             try {
                 const amountInNano = (parseFloat(price) * 1e9).toFixed(0);
                 await tonConnectUI.sendTransaction({
@@ -93,15 +98,18 @@
                     status: "Sold"
                 });
                 alert("NFT Purchased!");
-            } catch (e) { alert("Error!"); }
+            } catch (e) { alert("Error with transaction!"); }
         };
 
-        // Логика Минта
         window.processMint = async () => {
-            if (!tonConnectUI.connected) { tonConnectUI.openModal(); return; }
-            const file = document.getElementById('nft-file').files[0];
+            if (!tonConnectUI.connected) { await tonConnectUI.openModal(); return; }
+            
+            const fileInput = document.getElementById('nft-file');
+            const file = fileInput.files[0];
             const jwt = localStorage.getItem('pinata_jwt');
-            if (!file || !jwt) { alert("Check Pinata JWT and Image!"); return; }
+            
+            if (!file) { alert("Please select an image!"); return; }
+            if (!jwt) { alert("Missing Pinata JWT in LocalStorage!"); return; }
 
             const btn = document.getElementById('mint-submit-btn');
             try {
@@ -112,15 +120,17 @@
                 const pinRes = await fetch("https://api.pinata.cloud/pinning/pinFileToIPFS", {
                     method: 'POST', headers: { 'Authorization': `Bearer ${jwt}` }, body: formData
                 });
+                
+                if (!pinRes.ok) throw new Error("Pinata error");
                 const pinData = await pinRes.json();
                 
-                // ТРАНЗАКЦИЯ НА КОНТРАКТ (0.2 тебе + 0.05 на газ)
+                // ТРАНЗАКЦИЯ: 0.2 тебе + 0.05 на газ
                 await tonConnectUI.sendTransaction({
                     validUntil: Math.floor(Date.now() / 1000) + 300,
                     messages: [{ 
                         address: COLLECTION_ADDRESS, 
-                        amount: "250000000", // 0.25 TON
-                        payload: "te6cckEBAQEADgAAGJRqmLYAAAAAAAAAAOnNeQ0=" // Сообщение "Mint"
+                        amount: "250000000", 
+                        payload: "te6cckEBAQEADgAAGJRqmLYAAAAAAAAAAOnNeQ0=" 
                     }]
                 });
 
@@ -132,22 +142,32 @@
                     createdAt: Date.now()
                 });
 
-                alert("Mint Success! Your 0.2 TON fee sent to owner."); location.reload();
-            } catch (e) { alert("Transaction Failed or Cancelled"); } finally { btn.disabled = false; btn.innerText = "Pay & Mint"; }
+                alert("Mint Success!"); 
+                window.toggleModal('mint-modal');
+                location.reload();
+            } catch (e) { 
+                console.error(e);
+                alert("Failed: Check console for details."); 
+            } finally { 
+                btn.disabled = false; btn.innerText = "Pay & Mint"; 
+            }
         };
 
-        // Отображение
+        // Подгрузка NFT из Firebase
         const q = query(collection(db, "nfts"), orderBy("createdAt", "desc"));
         onSnapshot(q, (s) => {
             const grid = document.getElementById('nft-grid');
+            if (!grid) return;
             grid.innerHTML = '';
             s.forEach(d => {
                 const nft = d.data();
-                const isOwner = tonConnectUI.account && nft.owner === tonConnectUI.account.address;
+                const currentAddress = tonConnectUI.account?.address;
+                const isOwner = currentAddress && nft.owner === currentAddress;
+                
                 const card = document.createElement('div');
                 card.className = 'nft-card';
                 card.innerHTML = `
-                    <img src="${nft.image}" class="nft-image">
+                    <img src="${nft.image}" class="nft-image" onerror="this.src='https://placehold.co/400x400?text=NFT'">
                     <div class="nft-info">
                         <h3>${nft.name}</h3>
                         <div class="price-tag">0.2 TON</div>
@@ -160,11 +180,7 @@
             });
         });
 
-        window.toggleModal = (id) => {
-            const m = document.getElementById(id);
-            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
-        };
-
+        // Секрет для админки
         let secretClicks = 0;
         document.querySelector('.brand').addEventListener('click', () => {
             secretClicks++;
