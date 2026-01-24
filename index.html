@@ -124,15 +124,17 @@
                 if (!pinRes.ok) throw new Error("Pinata error");
                 const pinData = await pinRes.json();
                 
-                // ТРАНЗАКЦИЯ: 0.2 тебе + 0.05 на газ
-                await tonConnectUI.sendTransaction({
-                    validUntil: Math.floor(Date.now() / 1000) + 300,
-                    messages: [{ 
-                        address: COLLECTION_ADDRESS, 
-                        amount: "250000000", 
-                        payload: "te6cckEBAQEADgAAGJRqmLYAAAAAAAAAAOnNeQ0=" 
-                    }]
-                });
+                // ТРАНЗАКЦИЯ: 0.2 тебе + 0.08 на газ и хранение
+await tonConnectUI.sendTransaction({
+    validUntil: Math.floor(Date.now() / 1000) + 300,
+    messages: [{ 
+        address: "EQC_UXmf4r8xnxkmHg_rnKIYR7jFRNSBgrxu5aI6BtxXWSFT", 
+        amount: "280000000", // 0.28 TON
+        // МАКСИМАЛЬНО ПРОСТО: отправляем текст "Mint"
+        // Библиотека сама превратит его в нужный формат
+        payload: "" 
+    }]
+});
 
                 await addDoc(collection(db, "nfts"), {
                     name: document.getElementById('nft-name').value || "Royal NFT",
